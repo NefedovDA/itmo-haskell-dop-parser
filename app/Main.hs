@@ -1,6 +1,10 @@
-module Main where
+module Main
+ ( main
+ ) where
 
-import Lib
+import Parsing.Lexer
 
 main :: IO ()
-main = someFunc
+main = do
+  line <- getLine
+  print $ alexScanTokens line
