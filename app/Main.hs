@@ -2,9 +2,9 @@ module Main
  ( main
  ) where
 
-import Parsing.Lexer
+import Parsing.ParseInput (parseInput)
 
 main :: IO ()
 main = do
   line <- getLine
-  print $ alexScanTokens line
+  print $ parseInput line

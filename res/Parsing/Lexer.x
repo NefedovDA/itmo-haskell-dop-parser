@@ -50,6 +50,7 @@ tokens :-
 
     \:                                          { tok Colon }
     \;                                          { tok IEnd  }
+    \,                                          { tok Comma }
 
 {
 
@@ -68,6 +69,7 @@ data TokenType
   | Equals
   | IEnd
   | Colon
+  | Comma
   | Name
   | IntNum
   | DoubleNum
