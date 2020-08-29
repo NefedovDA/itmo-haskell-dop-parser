@@ -24,6 +24,12 @@ import           Parsing.ParserHelper
 
     RETURN      { T.Token T.KeyReturn _ _ }
 
+    FOR         { T.Token T.KeyFor _ _ }
+    IN          { T.Token T.KeyIn  _ _ }
+
+    IF          { T.Token T.KeyIf   _ _ }
+    ELSE        { T.Token T.KeyElse _ _ }
+
     NAME        { T.Token T.Name _ $$ }
 
     INT_NUM     { T.Token T.IntNum    _ $$ }
@@ -41,12 +47,17 @@ import           Parsing.ParserHelper
     '-'         { T.Token T.Minus _ _ }
     '*'         { T.Token T.Mull  _ _ }
     '/'         { T.Token T.Div   _ _ }
+    
+    '&&'        { T.Token T.And _ _ }
+    '||'        { T.Token T.Or  _ _ }
+    '!'         { T.Token T.Not _ _ }
 
     '='         { T.Token T.Equals   _ _ }
 
-    ':'         { T.Token T.Colon _ _ }
-    ';'         { T.Token T.IEnd  _ _ }
-    ','         { T.Token T.Comma _ _ }
+    ':'         { T.Token T.Colon  _ _ }
+    ';'         { T.Token T.IEnd   _ _ }
+    ','         { T.Token T.Comma  _ _ }
+    '..'        { T.Token T.DPoint _ _ }
 
 %%
 
@@ -69,14 +80,44 @@ Argument
   : Name ':' Type                         { E.Argument $1 $3 }
 
 CommandList
-  : Command ';' CommandList               { $1 : $3 }
+  : Command CommandList                   { $1 : $2 }
   |                                       { []      }
 
 Command
-  : Init                                  { E.InitCommand $1 }
-  | Assignment                            { E.AssiCommand $1 }
-  | Calculate                             { E.CalcCommand $1 }
-  | Return                                { E.RetCommand  $1 }
+  : Init       ';'                        { E.InitCommand $1 }
+  | Assignment ';'                        { E.AssiCommand $1 }
+  | Calculate  ';'                        { E.CalcCommand $1 }
+  | Return     ';'                        { E.RetCommand  $1 }
+  | For                                   { E.ForCommand  $1 }
+  | If                                    { E.IfCommand   $1 }
+
+For
+  : FOR '(' Name IN Number '..' Number ')' '{' CommandList '}'   { E.For $3 $5 $7 $10 }
+
+If
+  : IfBranch                             { E.If [$1] []      }
+  | IfBranch ELSE '{' CommandList '}'    { E.If [$1] $4      }
+  | IfBranch ELSE If                     { E.addBranch $1 $3 }
+
+IfBranch
+  : IF '(' Condition ')' '{' CommandList '}' { ($3, $6) }
+
+Condition
+  : Condition '||' And                   { E.OrCondition $1 $3 }
+  | And                                  { $1                  }
+
+And
+  : And '&&' Not                         { E.AndCondition $1 $3 }
+  | Not                                  { $1                   }
+
+Not
+  : '!' Not                              { E.NotCondition $2 }
+  | ConditionUnit                        { $1                }
+
+ConditionUnit
+  : '(' Condition ')'                    { $2                 }
+  | Name                                 { E.NameCondition $1 }
+  | Boolean                              { E.BoolCondition $1 }
 
 Init
   : VAL Name ':' Type '=' Value           { E.Init $2 $4 $6 True  }
@@ -106,9 +147,9 @@ Multiply
 
 Unary
   : '-' Unary                             { E.NegCalc $2 }
-  | Indent                                { $1           }
+  | CalculateUnit                         { $1           }
 
-Indent
+CalculateUnit
   : '(' Calculate ')'                     { $2            }
   | CallFunction                          { E.CallCalc $1 }
   | Name                                  { E.NameCalc $1 }

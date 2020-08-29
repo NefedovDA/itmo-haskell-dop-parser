@@ -28,6 +28,12 @@ tokens :-
 
     return                                      { tok KeyReturn }
 
+    for                                         { tok KeyFor }
+    in                                          { tok KeyIn  }
+
+    if                                          { tok KeyIf   }
+    else                                        { tok KeyElse }
+
     [$alpha][$alpha $digit]*                    { tok Name }
 
     [1-9][$digit]*|0                            { tok IntNum    }
@@ -46,11 +52,16 @@ tokens :-
     \*                                          { tok Mull  }
     \/                                          { tok Div   }
 
+    \&\&                                        { tok And }
+    \|\|                                        { tok Or  }
+    \!                                          { tok Not }
+
     \=                                          { tok Equals }
 
-    \:                                          { tok Colon }
-    \;                                          { tok IEnd  }
-    \,                                          { tok Comma }
+    \:                                          { tok Colon  }
+    \;                                          { tok IEnd   }
+    \,                                          { tok Comma  }
+    \.\.                                        { tok DPoint }
 
 {
 
@@ -80,6 +91,14 @@ data TokenType
   | KeyVar
   | KeyFun
   | KeyReturn
+  | KeyFor
+  | KeyIn
+  | KeyIf
+  | KeyElse
+  | DPoint
+  | And
+  | Or
+  | Not
   deriving (Show, Eq)
 
 data Token = Token

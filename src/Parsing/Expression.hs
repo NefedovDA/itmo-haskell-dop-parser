@@ -25,19 +25,45 @@ data Command
   | AssiCommand Assignment
   | CalcCommand Calculate
   | RetCommand  Return
+  | ForCommand  For
+  | IfCommand   If
   deriving (Eq, Show)
 
 data Init = Init
- { iName    :: Name
- , iType    :: Type
- , iValue   :: Value
- , iIsConst :: Bool
- } deriving (Eq, Show)
+   { iName    :: Name
+   , iType    :: Type
+   , iValue   :: Value
+   , iIsConst :: Bool
+   } deriving (Eq, Show)
+
+data For = For
+  { fIndexName :: Name
+  , fFrom      :: Number
+  , fTo        :: Number
+  , forBody    :: [Command]
+  } deriving (Eq, Show)
+
+data If = If
+  { ifBranches :: [(Condition, [Command])]
+  , ifDefault  :: [Command]
+  } deriving (Eq, Show)
+
+addBranch :: (Condition, [Command]) -> If -> If
+addBranch branch baseIf = baseIf { ifBranches = branch : ifBranches baseIf }
+
+data Condition
+  = BoolCondition Bool
+  | NameCondition Name
+  | NotCondition Condition
+  | AndCondition Condition Condition
+  | OrCondition  Condition Condition
+  deriving (Eq, Show)
 
 data Value 
   = CalcValue Calculate
   | StrValue  Str
   | BoolValue Bool
+  | NameValue Name
   deriving (Eq, Show)
 
 data Assignment = Assignment
