@@ -23,7 +23,6 @@ newtype Type = Type { unType :: String }
 data Command 
   = InitCommand Init
   | AssiCommand Assignment
-  | CalcCommand Calculate
   | RetCommand  Return
   | ForCommand  For
   | IfCommand   If
@@ -44,43 +43,36 @@ data For = For
   } deriving (Eq, Show)
 
 data If = If
-  { ifBranches :: [(Condition, [Command])]
+  { ifBranches :: [Branch]
   , ifDefault  :: [Command]
   } deriving (Eq, Show)
 
-addBranch :: (Condition, [Command]) -> If -> If
+data Branch = Branch
+  { bCondition :: Condition
+  , bBody      :: [Command]
+  } deriving (Eq, Show)
+
+addBranch :: Branch -> If -> If
 addBranch branch baseIf = baseIf { ifBranches = branch : ifBranches baseIf }
+
+data Value 
+  = NumValue  Number
+  | StrValue  Str
+  | BoolValue Bool
+  | NameValue Name
+  | CallValue CallFunction
+  deriving (Eq, Show)
 
 data Condition
   = BoolCondition Bool
   | NameCondition Name
-  | NotCondition Condition
-  | AndCondition Condition Condition
-  | OrCondition  Condition Condition
-  deriving (Eq, Show)
-
-data Value 
-  = CalcValue Calculate
-  | StrValue  Str
-  | BoolValue Bool
-  | NameValue Name
+  | CallCondition CallFunction
   deriving (Eq, Show)
 
 data Assignment = Assignment
   { aTarget :: Name
   , aValue  :: Value
   } deriving (Eq, Show)
-
-data Calculate
-  = CallCalc  CallFunction
-  | NameCalc  Name
-  | NumCalc   Number
-  | NegCalc   Calculate
-  | MultCalc  Calculate Calculate
-  | DivCalc   Calculate Calculate
-  | PlusCalc  Calculate Calculate
-  | MinusCalc Calculate Calculate
-  deriving (Eq, Show)
 
 newtype Return = Return { unReturn :: Maybe Value }
   deriving (Eq, Show)

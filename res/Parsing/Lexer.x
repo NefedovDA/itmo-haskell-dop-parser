@@ -1,8 +1,12 @@
 {
 module Parsing.Lexer
   ( AlexPosn(..)
+
   , Token(..)
   , TokenType(..)
+
+  , alexStartPos
+  , alexMove
 
   , alexScanTokens
   ) where
@@ -36,25 +40,16 @@ tokens :-
 
     [$alpha][$alpha $digit]*                    { tok Name }
 
-    [1-9][$digit]*|0                            { tok IntNum    }
-    [1-9][$digit]*\.[$digit]+|0\.[$digit]+      { tok DoubleNum }
+    -?([1-9][$digit]*|0)                        { tok IntNum    }
+    -?([1-9][$digit]*\.[$digit]+|0\.[$digit]+)  { tok DoubleNum }
 
-    \".*\"                                      { tok Str }
+    \"[^\"]*\"                                  { tok Str }
 
     \(                                          { tok OCBracket }
     \)                                          { tok CCBracket }
 
     \{                                          { tok OBBracket }
     \}                                          { tok CBBracket }
-
-    \+                                          { tok Plus  }
-    \-                                          { tok Minus }
-    \*                                          { tok Mull  }
-    \/                                          { tok Div   }
-
-    \&\&                                        { tok And }
-    \|\|                                        { tok Or  }
-    \!                                          { tok Not }
 
     \=                                          { tok Equals }
 
@@ -73,10 +68,6 @@ data TokenType
   | CCBracket
   | OBBracket
   | CBBracket
-  | Plus
-  | Minus
-  | Mull
-  | Div
   | Equals
   | IEnd
   | Colon
@@ -96,9 +87,6 @@ data TokenType
   | KeyIf
   | KeyElse
   | DPoint
-  | And
-  | Or
-  | Not
   deriving (Show, Eq)
 
 data Token = Token
