@@ -2,9 +2,9 @@ module Main
  ( main
  ) where
 
-import Parsing.ParseInput (parseInput)
+import Parsing.ParseInput (parseInputStr)
 
 main :: IO ()
 main = do
   line <- getLine
-  print $ parseInput line
+  print $ parseInputStr line

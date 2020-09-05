@@ -1,10 +1,13 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE GADTs #-}
 
 module Parsing.Expression
   ( Kotlin (..)
-  , ToS (..)
+  , KotlinPsi(..)
   
+  , ToS (..)
+
   , KtFile
   , KtFun0
   , KtFun1
@@ -34,12 +37,16 @@ class Kotlin expr where
   ktFile     :: [expr KtFun0Unit] -> expr KtFile
   ktFun0Unit :: Name -> expr KtFun0Unit
 
+data KotlinPsi a where
+  KtPsiFile     :: [KotlinPsi KtFun0Unit] -> KotlinPsi KtFile
+  KtPsiFun0Unit :: Name -> KotlinPsi KtFun0Unit
+
 newtype ToS a = ToS { toString :: String }
   deriving (Show, Semigroup)
 
 instance Kotlin ToS where
   ktFile :: [ToS KtFun0Unit] -> ToS KtFile
   ktFile fns = ToS $ intercalate "\n" $ toString <$> fns
-  
+
   ktFun0Unit :: Name -> ToS KtFun0Unit
   ktFun0Unit name = ToS $ "fun " ++ name ++ "(): Unit {}"

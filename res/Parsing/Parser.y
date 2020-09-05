@@ -59,11 +59,11 @@ import           Parsing.ParserHelper
 %%
 
 File
-  : ListFun0Unit                       { E.ktFile $1 }
+  : ListFun0Unit                       { E.KtPsiFile $1 }
 
 ListFun0Unit
   : Fun0Unit ListFun0Unit              { $1 : $2 }
   |                                    { []      }
 
 Fun0Unit
-  : FUN NAME '(' ')' ':' UNIT '{' '}'  { E.ktFun0Unit $2 }
+  : FUN NAME '(' ')' ':' UNIT '{' '}'  { E.KtPsiFun0Unit $2 }

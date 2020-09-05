@@ -1,6 +1,9 @@
+{-# LANGUAGE GADTs #-}
+
 module Parsing.ParseInput
-  ( parseInput
-  , parseString
+  ( parseString
+  , parseInput
+  , parseInputStr
   ) where
 
 import           Parsing.Expression
@@ -8,8 +11,13 @@ import           Parsing.Lexer
 import           Parsing.Parser
 import           Parsing.ParserHelper
 
-parseString :: Kotlin expr => String -> Result (expr KtFile)  
+parseString :: String -> Result (KotlinPsi KtFile)
 parseString input = happyParserExpression $ alexScanTokens input
+
+transform :: Kotlin expr => KotlinPsi a -> expr a
+transform a = case a of
+  KtPsiFile list  -> ktFile (map transform list)
+  KtPsiFun0Unit n -> ktFun0Unit n
 
 parseInput :: Kotlin expr => String -> expr KtFile
 parseInput input =
@@ -17,4 +25,7 @@ parseInput input =
     Ok arr     -> arr
     Failed msg -> error msg
   where
-    result = parseString input
+    result = transform <$> parseString input
+
+parseInputStr :: String -> ToS KtFile
+parseInputStr = parseInput

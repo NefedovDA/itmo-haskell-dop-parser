@@ -3,6 +3,11 @@ genRoot=./gen
 
 genModule=Parsing
 
+if [ ! -d "${genRoot}" ]
+then
+  mkdir "${genRoot}"
+fi
+
 if [ ! -d "${genRoot}/${genModule}" ]
 then
   mkdir "${genRoot}/${genModule}"
