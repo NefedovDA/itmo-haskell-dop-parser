@@ -40,8 +40,8 @@ tokens :-
 
     [$alpha][$alpha $digit]*                    { tok Name }
 
-    -?([1-9][$digit]*|0)                        { tok IntNum    }
-    -?([1-9][$digit]*\.[$digit]+|0\.[$digit]+)  { tok DoubleNum }
+    \-?([1-9][$digit]*|0)                       { tok IntNum    }
+    \-?([1-9][$digit]*\.[$digit]+|0\.[$digit]+) { tok DoubleNum }
 
     \"[^\"]*\"                                  { tok Str }
 
