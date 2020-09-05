@@ -8,10 +8,10 @@ import           Parsing.Lexer
 import           Parsing.Parser
 import           Parsing.ParserHelper
 
-parseString :: String -> Result File
+parseString :: Kotlin expr => String -> Result (expr KtFile)  
 parseString input = happyParserExpression $ alexScanTokens input
 
-parseInput :: String -> File
+parseInput :: Kotlin expr => String -> expr KtFile
 parseInput input =
   case result of
     Ok arr     -> arr

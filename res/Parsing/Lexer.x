@@ -38,6 +38,12 @@ tokens :-
     if                                          { tok KeyIf   }
     else                                        { tok KeyElse }
 
+    Unit                                        { tok TypeUnit   }
+    Int                                         { tok TypeInt    }
+    Double                                      { tok TypeDouble }
+    Bool                                        { tok TypeBool   }
+    String                                      { tok TypeString }
+
     [$alpha][$alpha $digit]*                    { tok Name }
 
     \-?([1-9][$digit]*|0)                       { tok IntNum    }
@@ -87,6 +93,11 @@ data TokenType
   | KeyIf
   | KeyElse
   | DPoint
+  | TypeUnit
+  | TypeInt
+  | TypeDouble
+  | TypeBool
+  | TypeString
   deriving (Show, Eq)
 
 data Token = Token

@@ -30,6 +30,12 @@ import           Parsing.ParserHelper
     IF          { T.Token T.KeyIf   _ _ }
     ELSE        { T.Token T.KeyElse _ _ }
 
+    UNIT        { T.Token T.TypeUnit   _ _ }
+    INT         { T.Token T.TypeInt    _ _ }
+    DOUBLE      { T.Token T.TypeDouble _ _ }
+    BOOL        { T.Token T.TypeBool   _ _ }
+    STRING      { T.Token T.TypeString _ _ }
+
     NAME        { T.Token T.Name _ $$ }
 
     INT_NUM     { T.Token T.IntNum    _ $$ }
@@ -52,3 +58,12 @@ import           Parsing.ParserHelper
 
 %%
 
+File
+  : ListFun0Unit                       { E.ktFile $1 }
+
+ListFun0Unit
+  : Fun0Unit ListFun0Unit              { $1 : $2 }
+  |                                    { []      }
+
+Fun0Unit
+  : FUN NAME '(' ')' ':' UNIT '{' '}'  { E.ktFun0Unit $2 }
