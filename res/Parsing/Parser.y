@@ -66,4 +66,11 @@ ListFun0Unit
   |                                    { []      }
 
 Fun0Unit
-  : FUN NAME '(' ')' ':' UNIT '{' '}'  { E.KtPsiFun0Unit $2 }
+  : FUN NAME '(' ')' ':' UNIT '{' ListCallFun0 '}'  { E.KtPsiFun0Unit $2 $8 }
+
+ListCallFun0
+  : CallFun0 ListCallFun0              { $1 : $2 }
+  |                                    { [] }
+
+CallFun0
+  : NAME '(' ')' ';'                   { E.KtPsiCallFun0 $1 }
