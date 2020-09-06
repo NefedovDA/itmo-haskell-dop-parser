@@ -2,10 +2,11 @@
 
 module Parsing.ParseInput
   ( parseInput
+  , parseInputExe
   , parseInputStr
   ) where
 
-import Parsing.Expression   (Kotlin(..), KotlinPsi(..), ToS, KtFile, transform)
+import Parsing.Expression   (Kotlin(..), KotlinPsi(..), ToS, Interpret(..), KtFile, transform)
 import Parsing.Lexer        (alexScanTokens)
 import Parsing.Parser       (happyParserExpression)
 import Parsing.ParserHelper (Result(..))
@@ -21,3 +22,6 @@ parseInput input =
 
 parseInputStr :: String -> ToS KtFile
 parseInputStr = parseInput
+
+parseInputExe :: String -> IO ()
+parseInputExe = interpret . parseInput
