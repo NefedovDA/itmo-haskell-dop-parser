@@ -3,9 +3,9 @@ module Parsing.Parser
   ( happyParserExpression
   ) where
 
-import qualified Parsing.Lexer         as T
-import qualified Parsing.Expression    as E
-import           Parsing.ParserHelper
+import qualified Parsing.Expression   as E
+import qualified Parsing.Token        as T
+import           Parsing.ParserHelper (Result, parseError, returnE, thenE)
 }
 
 %name           happyParserExpression

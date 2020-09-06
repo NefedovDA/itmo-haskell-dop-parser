@@ -1,31 +1,23 @@
 {-# LANGUAGE GADTs #-}
 
 module Parsing.ParseInput
-  ( parseString
-  , parseInput
+  ( parseInput
   , parseInputStr
   ) where
 
-import           Parsing.Expression
-import           Parsing.Lexer
-import           Parsing.Parser
-import           Parsing.ParserHelper
-
-parseString :: String -> Result (KotlinPsi KtFile)
-parseString input = happyParserExpression $ alexScanTokens input
-
-transform :: Kotlin expr => KotlinPsi a -> expr a
-transform a = case a of
-  KtPsiFile list  -> ktFile (map transform list)
-  KtPsiFun0Unit n -> ktFun0Unit n
+import Parsing.Expression   (Kotlin(..), KotlinPsi(..), ToS, KtFile, transform)
+import Parsing.Lexer        (alexScanTokens)
+import Parsing.Parser       (happyParserExpression)
+import Parsing.ParserHelper (Result(..))
 
 parseInput :: Kotlin expr => String -> expr KtFile
 parseInput input =
   case result of
-    Ok arr     -> arr
+    Ok file    -> file
     Failed msg -> error msg
   where
-    result = transform <$> parseString input
+    result :: Kotlin expr => Result (expr KtFile)
+    result = transform <$> (happyParserExpression $ alexScanTokens input)
 
 parseInputStr :: String -> ToS KtFile
 parseInputStr = parseInput

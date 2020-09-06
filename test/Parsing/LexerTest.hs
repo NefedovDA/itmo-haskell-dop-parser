@@ -7,8 +7,6 @@ import Test.Tasty.HUnit
 
 import Parsing.Lexer
 
-import Parsing.Token
-
 testLexer :: TestTree
 testLexer = testGroup "Test Lexer module"
   [ testKeys

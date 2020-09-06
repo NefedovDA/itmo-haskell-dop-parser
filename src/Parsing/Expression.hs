@@ -1,6 +1,6 @@
+{-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE InstanceSigs               #-}
 
 module Parsing.Expression
   ( Kotlin (..)
@@ -15,11 +15,12 @@ module Parsing.Expression
   , KtFun0Unit
   , Name
   , Unit
+  
+  , transform
   )
 where
 
 import Data.List (intercalate)
-
 
 type KtFile = IO ()
 
@@ -50,3 +51,8 @@ instance Kotlin ToS where
 
   ktFun0Unit :: Name -> ToS KtFun0Unit
   ktFun0Unit name = ToS $ "fun " ++ name ++ "(): Unit {}"
+
+transform :: Kotlin expr => KotlinPsi a -> expr a
+transform a = case a of
+  KtPsiFile list  -> ktFile (map transform list)
+  KtPsiFun0Unit n -> ktFun0Unit n

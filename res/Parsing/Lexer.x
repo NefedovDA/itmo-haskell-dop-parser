@@ -5,8 +5,8 @@ module Parsing.Lexer
   , Token(..)
   , TokenType(..)
 
-  , alexStartPos
   , alexMove
+  , alexStartPos
 
   , alexScanTokens
   ) where
