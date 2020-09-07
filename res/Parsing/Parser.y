@@ -81,8 +81,24 @@ Arg
   : NAME ':' Type                                 { ($1, $3) }
 
 Type
-  : UNIT                                          { KT.KtUnit   }
-  | INT                                           { KT.KtInt    }
-  | DOUBLE                                        { KT.KtDouble }
-  | BOOL                                          { KT.KtBool   }
-  | STRING                                        { KT.KtString }
+  : UNIT                                          { KT.KtUnitType   }
+  | INT                                           { KT.KtIntType    }
+  | DOUBLE                                        { KT.KtDoubleType }
+  | BOOL                                          { KT.KtBoolType   }
+  | STRING                                        { KT.KtStringType }
+
+Int
+  : INT_NUM                                       {% H.checkedInt $1 }
+
+Double
+  : DBL_NUM                                       {% H.checkedDouble $1 }
+
+String
+  : STR                                           { H.updatedString $1 }
+
+Bool
+  : TRUE                                          { KT.KtPsiBool True  }
+  | FALSE                                         { KT.KtPsiBool False }
+
+Unit
+  : UNIT                                          { KT.KtPsiUnit () }

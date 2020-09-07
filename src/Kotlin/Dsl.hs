@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE GADTs #-}
 
 module Kotlin.Dsl
   ( Kotlin(..)
@@ -17,9 +17,14 @@ module Kotlin.Dsl
   , KtFun2(..)
   
   , KtFunArg(..)
+  
+  , KtInt(..)
+  , KtDouble(..)
+  , KtString(..)
+  , KtUnit(..)
+  , KtBool(..)
 
   , Name(..)
-  , Unit(..)
   
   , KtType(..)
   ) where
@@ -32,6 +37,11 @@ class Kotlin expr where
   ktFun0 :: Name -> KtType -> expr KtFun0Data
   ktFun1 :: Name -> KtFunArg -> KtType -> expr KtFun1Data
   ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtType -> expr KtFun2Data
+  ktInt    :: Int    -> expr KtInt
+  ktDouble :: Double -> expr KtDouble
+  ktString :: String -> expr KtString
+  ktBool   :: Bool   -> expr KtBool
+  ktUnit   :: ()     -> expr KtUnit
 
 data FunDecl expr = FunDecl
   { fdFun0 :: [expr KtFun0Data]
@@ -56,6 +66,8 @@ data KtFun1 where
 data KtFun2 where
   KtFun2 :: (Typeable a1, Typeable a2, Typeable r) => (Scope -> a1 -> a2 -> IO r) -> KtFun2
 
+type Name = String
+
 type KtFun0Data = (Name, KtFun0)
 
 type KtFun1Data = (Name, KtFun1)
@@ -64,13 +76,19 @@ type KtFun2Data = (Name, KtFun2)
 
 type KtFunArg = (Name, KtType)
 
-type Name = String
+type KtInt = IO Int
 
-type Unit = ()
+type KtDouble = IO Double
+
+type KtString = IO String
+
+type KtUnit = IO ()
+
+type KtBool = IO Bool
 
 data KtType
-  = KtInt
-  | KtDouble
-  | KtString
-  | KtUnit
-  | KtBool
+  = KtIntType
+  | KtDoubleType
+  | KtStringType
+  | KtUnitType
+  | KtBoolType

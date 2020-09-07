@@ -17,7 +17,7 @@ newtype Interpret a = Interpret { interpret :: a }
 instance Kotlin Interpret where
   ktFile :: FunDecl Interpret -> Interpret KtFile
   ktFile funDec = Interpret $ do
-    let scope = Scope 
+    let scope = Scope
           { sFun0 = foldr iterator empty $ fdFun0 funDec
           , sFun1 = foldr iterator empty $ fdFun1 funDec
           , sFun2 = foldr iterator empty $ fdFun2 funDec
@@ -25,9 +25,9 @@ instance Kotlin Interpret where
 
     let (mbMain :: Maybe (Scope -> IO ())) = do
           (KtFun0 (f :: Scope -> IO t)) <- sFun0 scope !? "main"
-          Refl <- eqT @t @Unit
+          Refl <- eqT @t @()
           pure f
-    
+
     case mbMain of
       Nothing -> fail "Execution error: `main : () -> Unit` function not defined!"
       Just f  -> f scope
@@ -43,3 +43,21 @@ instance Kotlin Interpret where
 
   ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtType -> Interpret KtFun2Data
   ktFun2 name arg1 arg2 rType = Interpret (name, undefined)
+
+  ktInt :: Int -> Interpret KtInt
+  ktInt = interpretConstant
+
+  ktDouble :: Double -> Interpret KtDouble
+  ktDouble = interpretConstant
+
+  ktString :: String -> Interpret KtString
+  ktString = interpretConstant
+
+  ktBool :: Bool -> Interpret KtBool
+  ktBool = interpretConstant
+
+  ktUnit :: () -> Interpret KtUnit
+  ktUnit = interpretConstant
+
+interpretConstant :: a -> Interpret (IO a)
+interpretConstant a = Interpret $ return a

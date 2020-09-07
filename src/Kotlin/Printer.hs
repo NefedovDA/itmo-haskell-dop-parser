@@ -28,15 +28,30 @@ instance Kotlin Printer where
 
   ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtType -> Printer KtFun2Data
   ktFun2 name arg1 arg2 rType = printKtFun name [arg1, arg2] rType
+  
+  ktInt :: Int -> Printer KtInt
+  ktInt i = Printer $ show i 
+  
+  ktDouble :: Double -> Printer KtDouble
+  ktDouble d = Printer $ show d
+  
+  ktString :: String -> Printer KtString
+  ktString s = Printer $ "\"" ++ s ++  "\""
+  
+  ktBool :: Bool -> Printer KtBool
+  ktBool b = Printer $ if b then "true" else "false"
+  
+  ktUnit :: () -> Printer KtUnit
+  ktUnit () = Printer $ "Unit"
 
 instance Show KtType where
   show :: KtType -> String
   show = \case
-    KtInt    -> "Int"
-    KtDouble -> "Double"
-    KtString -> "String"
-    KtUnit   -> "Unit"
-    KtBool   -> "Bool"
+    KtIntType    -> "Int"
+    KtDoubleType -> "Double"
+    KtStringType -> "String"
+    KtUnitType   -> "Unit"
+    KtBoolType   -> "Bool"
 
 showKtArg :: KtFunArg -> String
 showKtArg (name, aType) = name ++ ": " ++ show aType

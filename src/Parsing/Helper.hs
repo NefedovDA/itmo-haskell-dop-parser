@@ -1,4 +1,5 @@
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs            #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Parsing.Helper
   ( emptyProxyFunDec
@@ -8,7 +9,8 @@ module Parsing.Helper
   , unproxyFunDec
   ) where
 
-import Data.Set (Set, insert, member, empty)
+import Data.Set  (Set, insert, member, empty)
+import Text.Read (readMaybe)
 
 import Kotlin.Dsl
 import Parsing.KotlinPsi
@@ -53,3 +55,23 @@ unproxyFunDec proxy = FunDecl
   , fdFun1 = pfdFun1 proxy
   , fdFun2 = pfdFun2 proxy
   }
+
+checkedInt :: String -> Result (KotlinPsi KtInt)
+checkedInt str = case readMaybe @Int str of
+  Nothing -> failE $ "Illegal Int constant: " ++ str
+  Just i  -> returnE $ KtPsiInt i
+
+checkedDouble :: String -> Result (KotlinPsi KtDouble)
+checkedDouble str = case readMaybe @Double str of
+  Nothing -> failE $ "Illegal Double constant: " ++ str
+  Just d  -> returnE $ KtPsiDouble d
+
+updatedString :: String -> KotlinPsi KtString
+updatedString (_:str) = KtPsiString $ dropLast str
+
+dropLast :: [a] -> [a]
+dropLast xs = f xs (tail xs)
+    where
+      f :: [a] -> [a] -> [a] 
+      f (x:xs) (y:ys) = x : f xs ys
+      f _ _ = []
