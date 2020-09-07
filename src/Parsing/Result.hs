@@ -1,6 +1,6 @@
 {-# LANGUAGE InstanceSigs #-}
 
-module Parsing.ParserHelper
+module Parsing.Result
   ( Result(..)
   
   , catchE

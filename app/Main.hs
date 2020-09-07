@@ -8,6 +8,6 @@ main :: IO ()
 main = do
   line <- getLine
   putStrLn "Code:"
-  print $ parseInputStr line
+  putStrLn $ parseInputStr line
   putStrLn "Evaluation:"
   parseInputExe line

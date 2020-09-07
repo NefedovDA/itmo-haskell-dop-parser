@@ -3,15 +3,16 @@ module Parsing.Parser
   ( happyParserExpression
   ) where
 
-import qualified Parsing.Expression   as E
-import qualified Parsing.Token        as T
-import           Parsing.ParserHelper (Result, parseError, returnE, thenE)
+import qualified Parsing.Helper    as H
+import qualified Parsing.KotlinPsi as KT
+import qualified Parsing.Result    as R
+import qualified Parsing.Token     as T
 }
 
 %name           happyParserExpression
 %tokentype      { T.Token }
-%error          { parseError }
-%monad          { Result } { thenE } { returnE }
+%error          { R.parseError }
+%monad          { R.Result } { R.thenE } { R.returnE }
 
 %token
     TRUE        { T.Token T.KeyTrue  _ _ }
@@ -59,18 +60,29 @@ import           Parsing.ParserHelper (Result, parseError, returnE, thenE)
 %%
 
 File
-  : ListFun0Unit                       { E.KtPsiFile $1 }
+  : FunDecl                                       { KT.KtPsiFile $ H.unproxyFunDec $1 }
 
-ListFun0Unit
-  : Fun0Unit ListFun0Unit              { $1 : $2 }
-  |                                    { []      }
+FunDecl
+  : Fun0 FunDecl                                  {% H.putFun0Data $1 $2 }
+  | Fun1 FunDecl                                  {% H.putFun1Data $1 $2 }
+  | Fun2 FunDecl                                  {% H.putFun2Data $1 $2 }
+  |                                               {  H.emptyProxyFunDec  }
 
-Fun0Unit
-  : FUN NAME '(' ')' ':' UNIT '{' ListCallFun0 '}'  { E.KtPsiFun0Unit $2 $8 }
+Fun0
+  : FUN NAME '(' ')' ':' Type '{' '}'             { KT.KtPsiFun0 $2 $6 }
 
-ListCallFun0
-  : CallFun0 ListCallFun0              { $1 : $2 }
-  |                                    { [] }
+Fun1
+  : FUN NAME '(' Arg ')' ':' Type '{' '}'         { KT.KtPsiFun1 $2 $4 $7 }
 
-CallFun0
-  : NAME '(' ')' ';'                   { E.KtPsiCallFun0 $1 }
+Fun2
+  : FUN NAME '('Arg ',' Arg ')' ':' Type '{' '}'  { KT.KtPsiFun2 $2 $4 $6 $9 }
+
+Arg
+  : NAME ':' Type                                 { ($1, $3) }
+
+Type
+  : UNIT                                          { KT.KtUnit   }
+  | INT                                           { KT.KtInt    }
+  | DOUBLE                                        { KT.KtDouble }
+  | BOOL                                          { KT.KtBool   }
+  | STRING                                        { KT.KtString }
