@@ -43,6 +43,9 @@ instance Kotlin Interpret where
 
   ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtType -> Interpret KtFun2Data
   ktFun2 name arg1 arg2 rType = Interpret (name, undefined)
+  
+  ktReturn :: Interpret r -> Interpret KtCmd
+  ktReturn r = Interpret $ KtCmdReturn $ \scope -> return $ interpret r
 
   ktInt :: Int -> Interpret KtInt
   ktInt = interpretConstant
@@ -56,8 +59,8 @@ instance Kotlin Interpret where
   ktBool :: Bool -> Interpret KtBool
   ktBool = interpretConstant
 
-  ktUnit :: () -> Interpret KtUnit
-  ktUnit = interpretConstant
+  ktUnit :: Interpret KtUnit
+  ktUnit = interpretConstant ()
 
 interpretConstant :: a -> Interpret (IO a)
 interpretConstant a = Interpret $ return a

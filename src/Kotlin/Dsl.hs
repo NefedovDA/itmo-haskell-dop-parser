@@ -11,21 +11,23 @@ module Kotlin.Dsl
   , KtFun0Data(..)
   , KtFun1Data(..)
   , KtFun2Data(..)
-  
+
   , KtFun0(..)
   , KtFun1(..)
   , KtFun2(..)
-  
+
   , KtFunArg(..)
   
-  , KtInt(..)
+  , KtCmd(..)
+
+  , KtBool(..)
   , KtDouble(..)
+  , KtInt(..)
   , KtString(..)
   , KtUnit(..)
-  , KtBool(..)
 
   , Name(..)
-  
+
   , KtType(..)
   ) where
 
@@ -37,11 +39,12 @@ class Kotlin expr where
   ktFun0 :: Name -> KtType -> expr KtFun0Data
   ktFun1 :: Name -> KtFunArg -> KtType -> expr KtFun1Data
   ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtType -> expr KtFun2Data
+  ktReturn :: expr r -> expr KtCmd
   ktInt    :: Int    -> expr KtInt
   ktDouble :: Double -> expr KtDouble
   ktString :: String -> expr KtString
   ktBool   :: Bool   -> expr KtBool
-  ktUnit   :: ()     -> expr KtUnit
+  ktUnit   ::           expr KtUnit
 
 data FunDecl expr = FunDecl
   { fdFun0 :: [expr KtFun0Data]
@@ -76,6 +79,11 @@ type KtFun2Data = (Name, KtFun2)
 
 type KtFunArg = (Name, KtType)
 
+data KtCmd where
+  KtCmdStep   :: (Scope -> (IO a, Scope)) -> KtCmd
+  KtCmdBlock  :: (Scope -> [KtCmd]) -> KtCmd
+  KtCmdReturn :: (Scope -> IO a) -> KtCmd
+
 type KtInt = IO Int
 
 type KtDouble = IO Double
@@ -85,6 +93,7 @@ type KtString = IO String
 type KtUnit = IO ()
 
 type KtBool = IO Bool
+
 
 data KtType
   = KtIntType

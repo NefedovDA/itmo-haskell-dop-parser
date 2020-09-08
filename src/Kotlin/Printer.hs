@@ -13,6 +13,9 @@ import Kotlin.Dsl
 newtype Printer a = Printer { runPrint :: String }
   deriving (Show, Semigroup)
 
+castP :: Printer a -> Printer b
+castP (Printer s) = Printer s
+
 instance Kotlin Printer where
   ktFile :: FunDecl Printer -> Printer KtFile
   ktFile fnDecl = Printer $
@@ -29,11 +32,14 @@ instance Kotlin Printer where
   ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtType -> Printer KtFun2Data
   ktFun2 name arg1 arg2 rType = printKtFun name [arg1, arg2] rType
   
+  ktReturn :: Printer r -> Printer KtCmd
+  ktReturn r = (Printer "return ") <> castP r <> (Printer ";")
+  
   ktInt :: Int -> Printer KtInt
-  ktInt i = Printer $ show i 
+  ktInt = Printer . show
   
   ktDouble :: Double -> Printer KtDouble
-  ktDouble d = Printer $ show d
+  ktDouble = Printer . show
   
   ktString :: String -> Printer KtString
   ktString s = Printer $ "\"" ++ s ++  "\""
@@ -41,8 +47,8 @@ instance Kotlin Printer where
   ktBool :: Bool -> Printer KtBool
   ktBool b = Printer $ if b then "true" else "false"
   
-  ktUnit :: () -> Printer KtUnit
-  ktUnit () = Printer $ "Unit"
+  ktUnit :: Printer KtUnit
+  ktUnit = Printer $ "Unit"
 
 instance Show KtType where
   show :: KtType -> String

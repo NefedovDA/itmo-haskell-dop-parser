@@ -87,6 +87,17 @@ Type
   | BOOL                                          { KT.KtBoolType   }
   | STRING                                        { KT.KtStringType }
 
+Return
+  : RETURN ';'                                    { KT.KtPsiReturn Kt.KtPsiUnit }
+  | RETURN Expr ';'                               { KT.KtPsiReturn $2 }
+
+Expr
+  : Int                                           { $1 }
+  | Double                                        { $1 }
+  | String                                        { $1 }
+  | Bool                                          { $1 }
+  | Unit                                          { $1 }
+
 Int
   : INT_NUM                                       {% H.checkedInt $1 }
 
