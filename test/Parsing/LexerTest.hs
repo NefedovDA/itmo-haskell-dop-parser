@@ -2,8 +2,8 @@ module Parsing.LexerTest
   ( testLexer
   ) where
 
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit (Assertion, testCase, (@?=))
 
 import Parsing.Lexer
 
@@ -32,6 +32,15 @@ testKeys = testGroup "Test lexing key words"
   , testCase "Lexing for"    $ checkSingleTokenLexing "for"    KeyFor
   , testCase "Lexing in"     $ checkSingleTokenLexing "in"     KeyIn
   , testCase "Lexing else"   $ checkSingleTokenLexing "else"   KeyElse
+  ]
+
+testTypes :: TestTree
+testTypes = testGroup "Test lexing types"
+  [ testCase "Lexing Unit"   $ checkSingleTokenLexing "Unit"   TypeUnit
+  , testCase "Lexing Int"    $ checkSingleTokenLexing "Int"    TypeUnit
+  , testCase "Lexing Double" $ checkSingleTokenLexing "Double" TypeUnit
+  , testCase "Lexing Bool"   $ checkSingleTokenLexing "Bool"   TypeUnit
+  , testCase "Lexing String" $ checkSingleTokenLexing "String" TypeUnit
   ]
 
 testSymbols :: TestTree

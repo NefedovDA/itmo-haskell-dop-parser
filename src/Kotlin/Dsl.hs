@@ -25,6 +25,7 @@ module Kotlin.Dsl
   , KtInt(..)
   , KtString(..)
   , KtUnit(..)
+  , KtHiddenResult(..)
 
   , Name(..)
 
@@ -39,12 +40,12 @@ class Kotlin expr where
   ktFun0 :: Name -> KtType -> expr KtFun0Data
   ktFun1 :: Name -> KtFunArg -> KtType -> expr KtFun1Data
   ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtType -> expr KtFun2Data
-  ktReturn :: expr r -> expr KtCmd
+  ktReturn :: KtHiddenResult expr -> expr KtCmd
   ktInt    :: Int    -> expr KtInt
   ktDouble :: Double -> expr KtDouble
   ktString :: String -> expr KtString
   ktBool   :: Bool   -> expr KtBool
-  ktUnit   ::           expr KtUnit
+  ktUnit   :: ()     -> expr KtUnit
 
 data FunDecl expr = FunDecl
   { fdFun0 :: [expr KtFun0Data]
@@ -94,6 +95,8 @@ type KtUnit = IO ()
 
 type KtBool = IO Bool
 
+data KtHiddenResult expr where
+ KtHiddenResult :: Typeable a => expr (IO a) -> KtHiddenResult expr
 
 data KtType
   = KtIntType
@@ -101,3 +104,4 @@ data KtType
   | KtStringType
   | KtUnitType
   | KtBoolType
+  deriving (Eq)

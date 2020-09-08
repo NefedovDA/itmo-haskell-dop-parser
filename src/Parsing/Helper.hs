@@ -7,6 +7,10 @@ module Parsing.Helper
   , putFun1Data
   , putFun2Data
   , unproxyFunDec
+  
+  , checkedInt
+  , checkedDouble
+  , updatedString
   ) where
 
 import Data.Set  (Set, insert, member, empty)

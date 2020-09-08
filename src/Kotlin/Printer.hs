@@ -32,8 +32,8 @@ instance Kotlin Printer where
   ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtType -> Printer KtFun2Data
   ktFun2 name arg1 arg2 rType = printKtFun name [arg1, arg2] rType
   
-  ktReturn :: Printer r -> Printer KtCmd
-  ktReturn r = (Printer "return ") <> castP r <> (Printer ";")
+  ktReturn :: KtHiddenResult Printer -> Printer KtCmd
+  ktReturn (KtHiddenResult r) = (Printer "return ") <> castP r <> (Printer ";")
   
   ktInt :: Int -> Printer KtInt
   ktInt = Printer . show
@@ -47,8 +47,8 @@ instance Kotlin Printer where
   ktBool :: Bool -> Printer KtBool
   ktBool b = Printer $ if b then "true" else "false"
   
-  ktUnit :: Printer KtUnit
-  ktUnit = Printer $ "Unit"
+  ktUnit :: () -> Printer KtUnit
+  ktUnit () = Printer $ "Unit"
 
 instance Show KtType where
   show :: KtType -> String
