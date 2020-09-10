@@ -25,28 +25,40 @@ testTemplates =
   [ TestTemplate
       { ttName = "Empty file"
       , ttPsi = KtPsiFile
-          FunDecl 
-            { fdFun0 = []
-            , fdFun1 = []
-            , fdFun2 = []
+          KtDeclarations
+            { kdFun0 = []
+            , kdFun1 = []
+            , kdFun2 = []
             }
       }
   , TestTemplate
       { ttName = "Single function"
       , ttPsi = KtPsiFile
-          FunDecl 
-            { fdFun0 = [ KtPsiFun0 "f" KtUnitType ]
-            , fdFun1 = []
-            , fdFun2 = []
+          KtDeclarations
+            { kdFun0 = [ KtPsiFun0 "f" (KtAnyType KtUnitType) ]
+            , kdFun1 = []
+            , kdFun2 = []
             }
       }
   , TestTemplate
       { ttName = "Several functions"
       , ttPsi = KtPsiFile
-          FunDecl 
-            { fdFun0 = [ KtPsiFun0 "f" KtUnitType ]
-            , fdFun1 = [ KtPsiFun1 "g" ("a", KtIntType) KtIntType ]
-            , fdFun2 = [ KtPsiFun2 "h" ("a", KtStringType) ("b", KtStringType) KtDoubleType ]
+          KtDeclarations
+            { kdFun0 =
+                [ KtPsiFun0 "f" 
+                    (KtAnyType KtUnitType)
+                ]
+            , kdFun1 =
+                [ KtPsiFun1 "g"
+                    ("a", (KtAnyType KtIntType))
+                    (KtAnyType KtIntType)
+                ]
+            , kdFun2 =
+                [ KtPsiFun2 "h"
+                    ("a", (KtAnyType KtStringType))
+                    ("b", (KtAnyType KtStringType))
+                    (KtAnyType KtDoubleType)
+                ]
             }
       }
   ]

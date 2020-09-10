@@ -1,5 +1,3 @@
-{-# LANGUAGE GADTs #-}
-
 module Parsing.ParseInput
   ( parseInput
   , parseInputExe

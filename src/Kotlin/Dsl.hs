@@ -3,105 +3,93 @@
 module Kotlin.Dsl
   ( Kotlin(..)
 
-  , FunDecl(..)
-  , Scope(..)
-
   , KtFile(..)
-
-  , KtFun0Data(..)
-  , KtFun1Data(..)
-  , KtFun2Data(..)
+  
+  , KtDeclarations(..)
+  , KtScope(..)
 
   , KtFun0(..)
   , KtFun1(..)
   , KtFun2(..)
+  
+  , KtFunData(..)
 
   , KtFunArg(..)
   
-  , KtCmd(..)
+  , KtCommand(..)
 
-  , KtBool(..)
-  , KtDouble(..)
-  , KtInt(..)
-  , KtString(..)
-  , KtUnit(..)
-  , KtHiddenResult(..)
+  , KtValue(..)
 
   , Name(..)
 
   , KtType(..)
+  , KtAnyType(..)
   ) where
 
 import Data.Map      (Map)
 import Data.Typeable (Typeable)
 
 class Kotlin expr where
-  ktFile :: FunDecl expr -> expr KtFile
-  ktFun0 :: Name -> KtType -> expr KtFun0Data
-  ktFun1 :: Name -> KtFunArg -> KtType -> expr KtFun1Data
-  ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtType -> expr KtFun2Data
-  ktReturn :: KtHiddenResult expr -> expr KtCmd
-  ktInt    :: Int    -> expr KtInt
-  ktDouble :: Double -> expr KtDouble
-  ktString :: String -> expr KtString
-  ktBool   :: Bool   -> expr KtBool
-  ktUnit   :: ()     -> expr KtUnit
+  ktFile :: KtDeclarations expr -> expr KtFile
 
-data FunDecl expr = FunDecl
-  { fdFun0 :: [expr KtFun0Data]
-  , fdFun1 :: [expr KtFun1Data]
-  , fdFun2 :: [expr KtFun2Data]
-  }
+  ktFun0 :: Name -> KtAnyType -> expr (KtFunData KtFun0)
+  ktFun1 :: Name -> KtFunArg -> KtAnyType -> expr (KtFunData KtFun1)
+  ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtAnyType -> expr (KtFunData KtFun2)
+
+  ktReturn :: expr KtValue -> expr KtCommand
+
+  ktInt    :: Int    -> expr KtValue
+  ktDouble :: Double -> expr KtValue
+  ktString :: String -> expr KtValue
+  ktBool   :: Bool   -> expr KtValue
+  ktUnit   :: ()     -> expr KtValue
 
 type KtFile = IO ()
 
-data Scope = Scope
-  { sFun0 :: Map Name KtFun0
-  , sFun1 :: Map Name KtFun1
-  , sFun2 :: Map Name KtFun2
+data KtDeclarations expr = KtDeclarations
+  { kdFun0 :: [expr (KtFunData KtFun0)]
+  , kdFun1 :: [expr (KtFunData KtFun1)]
+  , kdFun2 :: [expr (KtFunData KtFun2)]
+  }
+
+data KtScope = KtScope
+  { sFun0 :: Map String KtFun0
+  , sFun1 :: Map String KtFun1
+  , sFun2 :: Map String KtFun2
+  
+  , sValue :: Map String KtValue
+  , sVariable :: Map String KtValue 
   }
 
 data KtFun0 where
-  KtFun0 :: (Typeable r) => (Scope -> IO r) -> KtFun0
+  KtFun0 :: (Typeable r) => (KtScope -> IO r) -> KtFun0
 
 data KtFun1 where
-  KtFun1 :: (Typeable a1, Typeable r) => (Scope -> a1 -> IO r) -> KtFun1
+  KtFun1 :: (Typeable a1, Typeable r) => (KtScope -> a1 -> IO r) -> KtFun1
 
 data KtFun2 where
-  KtFun2 :: (Typeable a1, Typeable a2, Typeable r) => (Scope -> a1 -> a2 -> IO r) -> KtFun2
+  KtFun2 :: (Typeable a1, Typeable a2, Typeable r) => (KtScope -> a1 -> a2 -> IO r) -> KtFun2
+
+type KtFunData fun = (Name, [KtAnyType], fun)
 
 type Name = String
 
-type KtFun0Data = (Name, KtFun0)
+type KtFunArg = (Name, KtAnyType)
 
-type KtFun1Data = (Name, KtFun1)
+data KtCommand where
+  KtCommandReturn :: KtValue -> KtCommand
+  KtCommandStep   :: (KtScope -> (KtScope, IO ())) -> KtCommand
+  KtCommandBlock  :: [KtCommand] -> KtCommand
 
-type KtFun2Data = (Name, KtFun2)
+data KtValue where
+  KtValue :: (Typeable a) => (KtScope -> IO a) -> KtValue
 
-type KtFunArg = (Name, KtType)
+data KtType t where
+  KtIntType    :: KtType Int
+  KtDoubleType :: KtType Double
+  KtStringType :: KtType String
+  KtUnitType   :: KtType ()
+  KtBoolType   :: KtType Bool
 
-data KtCmd where
-  KtCmdStep   :: (Scope -> (IO a, Scope)) -> KtCmd
-  KtCmdBlock  :: (Scope -> [KtCmd]) -> KtCmd
-  KtCmdReturn :: (Scope -> IO a) -> KtCmd
-
-type KtInt = IO Int
-
-type KtDouble = IO Double
-
-type KtString = IO String
-
-type KtUnit = IO ()
-
-type KtBool = IO Bool
-
-data KtHiddenResult expr where
- KtHiddenResult :: Typeable a => expr (IO a) -> KtHiddenResult expr
-
-data KtType
-  = KtIntType
-  | KtDoubleType
-  | KtStringType
-  | KtUnitType
-  | KtBoolType
-  deriving (Eq)
+data KtAnyType where
+  KtAnyType :: (Typeable t) => KtType t -> KtAnyType

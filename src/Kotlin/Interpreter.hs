@@ -7,60 +7,107 @@ module Kotlin.Interpreter
   ( Interpret(..)
   ) where
 
-import Data.Map      (Map, empty, insert, (!?))
-import Data.Typeable ((:~:)(..), eqT)
+import Data.Map      (Map, insert, empty, (!?))
+import Data.Typeable (Typeable, (:~:)(..), eqT)
 
 import Kotlin.Dsl
+import Kotlin.Utils
 
 newtype Interpret a = Interpret { interpret :: a }
 
 instance Kotlin Interpret where
-  ktFile :: FunDecl Interpret -> Interpret KtFile
-  ktFile funDec = Interpret $ do
-    let scope = Scope
-          { sFun0 = foldr iterator empty $ fdFun0 funDec
-          , sFun1 = foldr iterator empty $ fdFun1 funDec
-          , sFun2 = foldr iterator empty $ fdFun2 funDec
+  ktFile :: KtDeclarations Interpret -> Interpret KtFile
+  ktFile declarations = Interpret $ do
+    let scope = KtScope
+          { sFun0 = empty
+          , sFun1 = empty
+          , sFun2 = empty
+          
+          , sValue = empty
+          , sVariable = empty
           }
-
-    let (mbMain :: Maybe (Scope -> IO ())) = do
-          (KtFun0 (f :: Scope -> IO t)) <- sFun0 scope !? "main"
-          Refl <- eqT @t @()
-          pure f
-
-    case mbMain of
+    case getFun0 scope "main" KtUnitType of
       Nothing -> fail "Execution error: `main : () -> Unit` function not defined!"
-      Just f  -> f scope
+      Just f -> f scope
     where
-      iterator :: Interpret (Name, a) -> Map Name a -> Map Name a
-      iterator fn fns = uncurry insert (interpret fn) fns
+      iterator :: Interpret (KtFunData a) -> Map String a -> Map String a
+      iterator iFun funs =
+        let (name, types, fun) = interpret iFun
+          in insert (fun2key name types) fun funs
 
-  ktFun0 :: Name -> KtType -> Interpret KtFun0Data
-  ktFun0 name rType = Interpret (name, undefined)
+  ktFun0 :: Name -> KtAnyType -> Interpret (KtFunData KtFun0)
+  ktFun0 name rType = Interpret undefined
 
-  ktFun1 :: Name -> KtFunArg -> KtType -> Interpret KtFun1Data
-  ktFun1 name arg rType = Interpret (name, undefined)
+  ktFun1 :: Name -> KtFunArg -> KtAnyType -> Interpret (KtFunData KtFun1)
+  ktFun1 name arg rType = Interpret undefined
 
-  ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtType -> Interpret KtFun2Data
-  ktFun2 name arg1 arg2 rType = Interpret (name, undefined)
+  ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtAnyType -> Interpret (KtFunData KtFun2)
+  ktFun2 name arg1 arg2 rType = Interpret undefined
   
-  ktReturn :: KtHiddenResult Interpret -> Interpret KtCmd
-  ktReturn (KtHiddenResult r) = Interpret $ KtCmdReturn $ \scope -> return $ interpret r
+  ktReturn :: Interpret KtValue -> Interpret KtCommand
+  ktReturn result = Interpret undefined
 
-  ktInt :: Int -> Interpret KtInt
+  ktInt :: Int -> Interpret KtValue
   ktInt = interpretConstant
 
-  ktDouble :: Double -> Interpret KtDouble
+  ktDouble :: Double -> Interpret KtValue
   ktDouble = interpretConstant
 
-  ktString :: String -> Interpret KtString
+  ktString :: String -> Interpret KtValue
   ktString = interpretConstant
 
-  ktBool :: Bool -> Interpret KtBool
+  ktBool :: Bool -> Interpret KtValue
   ktBool = interpretConstant
 
-  ktUnit :: () -> Interpret KtUnit
+  ktUnit :: () -> Interpret KtValue
   ktUnit = interpretConstant
 
-interpretConstant :: a -> Interpret (IO a)
-interpretConstant a = Interpret $ return a
+interpretConstant :: Typeable a => a -> Interpret KtValue
+interpretConstant a = Interpret . KtValue $ \_ -> return a
+
+getFun0 :: Typeable r => KtScope -> Name -> KtType r -> Maybe (KtScope -> IO r)
+getFun0 KtScope { sFun0 = funs } name (rType :: KtType rT) = do
+  KtFun0 (fun0 :: KtScope -> IO r) <- funs !? (fun2key name [KtAnyType rType])
+  Refl <- eqT @r @rT
+  return fun0
+
+getFun1
+  :: (Typeable a, Typeable r)
+  => KtScope
+  -> Name
+  -> KtType a
+  -> KtType r
+  -> Maybe (KtScope -> a -> IO r)
+getFun1
+  KtScope { sFun1 = funs }
+  name
+  (aType :: KtType aT)
+  (rType :: KtType rT)
+    = do
+  KtFun1 (fun1 :: KtScope -> a -> IO r) <-
+    funs !? (fun2key name [KtAnyType aType, KtAnyType rType])
+  Refl <- eqT @a @aT
+  Refl <- eqT @r @rT
+  return undefined
+
+getFun2
+  :: (Typeable a1, Typeable a2, Typeable r)
+  => KtScope
+  -> Name
+  -> KtType a1
+  -> KtType a2
+  -> KtType r
+  -> Maybe (KtScope -> a1 -> a2 -> IO r)
+getFun2 
+  KtScope { sFun2 = funs }
+  name
+  (a1Type :: KtType a1T)
+  (a2Type :: KtType a2T)
+  (rType  :: KtType rT)
+    = do
+  KtFun2 (fun2 :: KtScope -> a1 -> a2 -> IO r) <-
+    funs !? (fun2key name [KtAnyType a1Type, KtAnyType a2Type, KtAnyType rType])
+  Refl <- eqT @a1 @a1T
+  Refl <- eqT @a2 @a2T
+  Refl <- eqT @r  @rT
+  return fun2

@@ -24,6 +24,7 @@ dependencies:
 - array
 - mtl
 - containers
+- HMap
 
 library:
   source-dirs:

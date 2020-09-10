@@ -3,10 +3,10 @@ module Parsing.Parser
   ( happyParserExpression
   ) where
 
-import qualified Parsing.Helper    as H
 import qualified Parsing.KotlinPsi as KT
 import qualified Parsing.Result    as R
 import qualified Parsing.Token     as T
+import qualified Parsing.Utils     as U
 }
 
 %name           happyParserExpression
@@ -63,10 +63,10 @@ File
   : FunDecl                                       { KT.KtPsiFile $ H.unproxyFunDec $1 }
 
 FunDecl
-  : Fun0 FunDecl                                  {% H.putFun0Data $1 $2 }
-  | Fun1 FunDecl                                  {% H.putFun1Data $1 $2 }
-  | Fun2 FunDecl                                  {% H.putFun2Data $1 $2 }
-  |                                               {  H.emptyProxyFunDec  }
+  : Fun0 FunDecl                                  {% U.putFun0Data $1 $2 }
+  | Fun1 FunDecl                                  {% U.putFun1Data $1 $2 }
+  | Fun2 FunDecl                                  {% U.putFun2Data $1 $2 }
+  |                                               {  U.emptyProxyFunDec  }
 
 Fun0
   : FUN NAME '(' ')' ':' Type '{' '}'             { KT.KtPsiFun0 $2 $6 }
@@ -75,37 +75,26 @@ Fun1
   : FUN NAME '(' Arg ')' ':' Type '{' '}'         { KT.KtPsiFun1 $2 $4 $7 }
 
 Fun2
-  : FUN NAME '('Arg ',' Arg ')' ':' Type '{' '}'  { KT.KtPsiFun2 $2 $4 $6 $9 }
+  : FUN NAME '(' Arg ',' Arg ')' ':' Type '{' '}' { KT.KtPsiFun2 $2 $4 $6 $9 }
 
 Arg
   : NAME ':' Type                                 { ($1, $3) }
 
 Type
-  : UNIT                                          { KT.KtUnitType   }
-  | INT                                           { KT.KtIntType    }
-  | DOUBLE                                        { KT.KtDoubleType }
-  | BOOL                                          { KT.KtBoolType   }
-  | STRING                                        { KT.KtStringType }
-
-Return
-  : RETURN ';'                                    { KT.KtPsiReturn . KT.KtHiddenResult $ KT.KtPsiUnit () }
-  | RETURN Expr ';'                               { KT.KtPsiReturn $2 }
-
-Expr
-  : Double                                        { KT.KtHiddenResult $1 }
-  | Int                                           { KT.KtHiddenResult $1 }
-  | String                                        { KT.KtHiddenResult $1 }
-  | Bool                                          { KT.KtHiddenResult $1 }
-  | Unit                                          { KT.KtHiddenResult $1 }
+  : UNIT                                          { KT.KtAnyType KT.KtUnitType   }
+  | INT                                           { KT.KtAnyType KT.KtIntType    }
+  | DOUBLE                                        { KT.KtAnyType KT.KtDoubleType }
+  | BOOL                                          { KT.KtAnyType KT.KtBoolType   }
+  | STRING                                        { KT.KtAnyType KT.KtStringType }
 
 Int
-  : INT_NUM                                       {% H.checkedInt $1 }
+  : INT_NUM                                       {% U.checkedInt $1 }
 
 Double
-  : DBL_NUM                                       {% H.checkedDouble $1 }
+  : DBL_NUM                                       {% U.checkedDouble $1 }
 
 String
-  : STR                                           { H.updatedString $1 }
+  : STR                                           { U.updatedString $1 }
 
 Bool
   : TRUE                                          { KT.KtPsiBool True  }
