@@ -39,13 +39,13 @@ data KotlinPsi a where
     -> [KotlinPsi KtCommand]
     -> KotlinPsi (KtFunData KtFun2)
 
-  KtPsiReturn :: KotlinPsi KtValue -> KotlinPsi KtCommand
+  KtPsiReturn :: KotlinPsi KtAnyValue -> KotlinPsi KtCommand
 
-  KtPsiInt    :: Int    -> KotlinPsi KtValue
-  KtPsiDouble :: Double -> KotlinPsi KtValue
-  KtPsiString :: String -> KotlinPsi KtValue
-  KtPsiBool   :: Bool   -> KotlinPsi KtValue
-  KtPsiUnit   :: ()     -> KotlinPsi KtValue
+  KtPsiInt    :: Int    -> KotlinPsi (KtValue Int)
+  KtPsiDouble :: Double -> KotlinPsi (KtValue Double)
+  KtPsiString :: String -> KotlinPsi (KtValue String)
+  KtPsiBool   :: Bool   -> KotlinPsi (KtValue Bool)
+  KtPsiUnit   :: ()     -> KotlinPsi (KtValue ())
 
 instance Eq (KtDeclarations KotlinPsi) where
   (==) :: KtDeclarations KotlinPsi -> KtDeclarations KotlinPsi -> Bool

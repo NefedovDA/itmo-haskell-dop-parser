@@ -51,22 +51,22 @@ instance Kotlin Printer where
   ktFun2 name arg1 arg2 rType cmds =
     printKtFun name [arg1, arg2] rType cmds
   
-  ktReturn :: Printer KtValue -> Printer KtCommand
+  ktReturn :: Printer KtAnyValue -> Printer KtCommand
   ktReturn result = (Printer "return ") <> castP result <> (Printer ";")
-  
-  ktInt :: Int -> Printer KtValue
+
+  ktInt :: Int -> Printer (KtValue Int)
   ktInt = Printer . show
   
-  ktDouble :: Double -> Printer KtValue
+  ktDouble :: Double -> Printer (KtValue Double)
   ktDouble = Printer . show
   
-  ktString :: String -> Printer KtValue
+  ktString :: String -> Printer (KtValue String)
   ktString s = Printer $ "\"" ++ s ++  "\""
   
-  ktBool :: Bool -> Printer KtValue
+  ktBool :: Bool -> Printer (KtValue Bool)
   ktBool b = Printer $ if b then "true" else "false"
   
-  ktUnit :: () -> Printer KtValue
+  ktUnit :: () -> Printer (KtValue ())
   ktUnit () = Printer $ "Unit"
 
 instance Show (KtType t) where

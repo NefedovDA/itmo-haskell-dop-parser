@@ -89,26 +89,26 @@ instance Kotlin Interpret where
           }
         >>= mkFunBody rType cmds
   
-  ktReturn :: Interpret KtValue -> Interpret KtCommand
+  ktReturn :: Interpret KtAnyValue -> Interpret KtCommand
   ktReturn result = Interpret undefined
 
-  ktInt :: Int -> Interpret KtValue
+  ktInt :: Int -> Interpret (KtValue Int)
   ktInt = interpretConstant
 
-  ktDouble :: Double -> Interpret KtValue
+  ktDouble :: Double -> Interpret (KtValue Double)
   ktDouble = interpretConstant
 
-  ktString :: String -> Interpret KtValue
+  ktString :: String -> Interpret (KtValue String)
   ktString = interpretConstant
 
-  ktBool :: Bool -> Interpret KtValue
+  ktBool :: Bool -> Interpret (KtValue Bool)
   ktBool = interpretConstant
 
-  ktUnit :: () -> Interpret KtValue
+  ktUnit :: () -> Interpret (KtValue ())
   ktUnit = interpretConstant
 
-interpretConstant ::( Typeable a) => a -> Interpret KtValue
-interpretConstant a = Interpret . KtValue $ \_ -> return a
+interpretConstant :: (Typeable a) => a -> Interpret (KtValue a)
+interpretConstant a = Interpret $ \_ -> return a
 
 mkFunBody :: (Typeable r) => KtType r -> [Interpret KtCommand] -> KtScope -> IO r
 mkFunBody (rType :: KtType rT) cmds funScope = do
@@ -173,7 +173,7 @@ foldCommands initScope (ktType :: KtType a) cmds = foldCommands' initScope cmds 
     foldCommands' scope [] mbV = return mbV
     foldCommands' scope (cmd:cmds) Nothing =
       case cmd of
-        KtCommandReturn (KtValue (ioR :: KtScope -> IO r)) ->
+        KtCommandReturn (KtAnyValue (ioR :: KtScope -> IO r)) ->
           case eqT @a @r of
             Nothing   -> fail ""
             Just Refl -> ioR scope >>= \r -> foldCommands' scope cmds $ Just r
@@ -183,7 +183,7 @@ foldCommands initScope (ktType :: KtType a) cmds = foldCommands' initScope cmds 
           foldCommands' scope blockCmds Nothing >>= \mbR -> foldCommands' scope cmds mbR
     foldCommands' scope (cmd:cmds) jV@(Just v) =
       case cmd of
-        KtCommandReturn (KtValue (ioR :: KtScope -> IO r)) ->
+        KtCommandReturn (KtAnyValue (ioR :: KtScope -> IO r)) ->
           case eqT @a @r of
             Nothing   -> fail ""
             Just Refl -> foldCommands' scope cmds jV
