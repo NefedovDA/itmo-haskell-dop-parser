@@ -35,7 +35,24 @@ testTemplates =
       { ttName = "Single function"
       , ttPsi = KtPsiFile
           KtDeclarations
-            { kdFun0 = [ KtPsiFun0 "f" (KtAnyType KtUnitType) ]
+            { kdFun0 =
+                [ KtPsiFun0 "f"
+                  (KtAnyType KtUnitType) 
+                  []
+                ]
+            , kdFun1 = []
+            , kdFun2 = []
+            }
+      }
+  , TestTemplate
+      { ttName = "Single function with return"
+      , ttPsi = KtPsiFile
+          KtDeclarations
+            { kdFun0 =
+                [ KtPsiFun0 "f"
+                  (KtAnyType KtUnitType) 
+                  [ KtPsiReturn $ KtPsiUnit () ]
+                ]
             , kdFun1 = []
             , kdFun2 = []
             }
@@ -47,17 +64,20 @@ testTemplates =
             { kdFun0 =
                 [ KtPsiFun0 "f" 
                     (KtAnyType KtUnitType)
+                    []
                 ]
             , kdFun1 =
                 [ KtPsiFun1 "g"
                     ("a", (KtAnyType KtIntType))
-                    (KtAnyType KtIntType)
+                    (KtAnyType KtUnitType)
+                    []
                 ]
             , kdFun2 =
                 [ KtPsiFun2 "h"
                     ("a", (KtAnyType KtStringType))
-                    ("b", (KtAnyType KtStringType))
-                    (KtAnyType KtDoubleType)
+                    ("b", (KtAnyType KtDoubleType))
+                    (KtAnyType KtUnitType)
+                    []
                 ]
             }
       }

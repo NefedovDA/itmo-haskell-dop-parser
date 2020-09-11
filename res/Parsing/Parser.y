@@ -60,7 +60,7 @@ import qualified Parsing.Utils     as U
 %%
 
 File
-  : FunDecl                                       { KT.KtPsiFile $ H.unproxyFunDec $1 }
+  : FunDecl                                       { KT.KtPsiFile $ U.unproxyFunDec $1 }
 
 FunDecl
   : Fun0 FunDecl                                  {% U.putFun0Data $1 $2 }
@@ -69,16 +69,34 @@ FunDecl
   |                                               {  U.emptyProxyFunDec  }
 
 Fun0
-  : FUN NAME '(' ')' ':' Type '{' '}'             { KT.KtPsiFun0 $2 $6 }
+  : FUN NAME '(' ')' ':' Type '{' CommandList '}'    { KT.KtPsiFun0 $2 $6 $8 }
 
 Fun1
-  : FUN NAME '(' Arg ')' ':' Type '{' '}'         { KT.KtPsiFun1 $2 $4 $7 }
+  : FUN NAME '(' Arg ')' ':' Type '{' CommandList '}'    { KT.KtPsiFun1 $2 $4 $7 $9 }
 
 Fun2
-  : FUN NAME '(' Arg ',' Arg ')' ':' Type '{' '}' { KT.KtPsiFun2 $2 $4 $6 $9 }
+  : FUN NAME '(' Arg ',' Arg ')' ':' Type '{' CommandList '}'    { KT.KtPsiFun2 $2 $4 $6 $9 $11 }
 
 Arg
   : NAME ':' Type                                 { ($1, $3) }
+
+CommandList
+  : Command CommandList                           { $1 : $2 }
+  |                                               { []      }
+
+Command
+  : Return ';'                                    { $1 }
+
+Return
+  : RETURN                                        { KT.KtPsiReturn $ KT.KtPsiUnit () }
+  | RETURN Expr                                   { KT.KtPsiReturn $2                }
+
+Expr
+  : Double                                        { $1 }
+  | Int                                           { $1 }
+  | String                                        { $1 }
+  | Bool                                          { $1 }
+  | Unit                                          { $1 }
 
 Type
   : UNIT                                          { KT.KtAnyType KT.KtUnitType   }

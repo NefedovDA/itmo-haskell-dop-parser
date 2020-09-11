@@ -48,15 +48,15 @@ checkAndThen name types updater proxy =
        else returnE . updater $ proxy { pfdUsedNames = insert name $ pfdUsedNames proxy }
 
 putFun0Data :: KotlinPsi (KtFunData KtFun0) -> ProxyFunDec -> Result ProxyFunDec
-putFun0Data f@(KtPsiFun0 name _) =
+putFun0Data f@(KtPsiFun0 name _ _) =
   checkAndThen name [] $ \proxy -> proxy { pfdFun0 = f : (pfdFun0 proxy) }
 
 putFun1Data :: KotlinPsi (KtFunData KtFun1) -> ProxyFunDec -> Result ProxyFunDec
-putFun1Data f@(KtPsiFun1 name (_, aType) _) =
+putFun1Data f@(KtPsiFun1 name (_, aType) _ _) =
   checkAndThen name [aType] $ \proxy -> proxy { pfdFun1 = f : (pfdFun1 proxy) }
 
 putFun2Data :: KotlinPsi (KtFunData KtFun2) -> ProxyFunDec -> Result ProxyFunDec
-putFun2Data f@(KtPsiFun2 name (_, a1Type) (_, a2Type) _) =
+putFun2Data f@(KtPsiFun2 name (_, a1Type) (_, a2Type) _ _) =
   checkAndThen name [a1Type, a2Type] $ \proxy -> proxy { pfdFun2 = f : (pfdFun2 proxy) }
 
 unproxyFunDec :: ProxyFunDec -> KtDeclarations KotlinPsi

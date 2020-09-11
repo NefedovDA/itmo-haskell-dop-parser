@@ -19,6 +19,7 @@ module Kotlin.Dsl
   , KtCommand(..)
 
   , KtValue(..)
+  , KtVariable(..)
 
   , Name(..)
 
@@ -32,9 +33,9 @@ import Data.Typeable (Typeable)
 class Kotlin expr where
   ktFile :: KtDeclarations expr -> expr KtFile
 
-  ktFun0 :: Name -> KtAnyType -> expr (KtFunData KtFun0)
-  ktFun1 :: Name -> KtFunArg -> KtAnyType -> expr (KtFunData KtFun1)
-  ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtAnyType -> expr (KtFunData KtFun2)
+  ktFun0 :: Name -> KtAnyType -> [expr KtCommand] -> expr (KtFunData KtFun0)
+  ktFun1 :: Name -> KtFunArg -> KtAnyType -> [expr KtCommand] -> expr (KtFunData KtFun1)
+  ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtAnyType -> [expr KtCommand] -> expr (KtFunData KtFun2)
 
   ktReturn :: expr KtValue -> expr KtCommand
 
@@ -57,15 +58,15 @@ data KtScope = KtScope
   , sFun1 :: Map String KtFun1
   , sFun2 :: Map String KtFun2
   
-  , sValue :: Map String KtValue
-  , sVariable :: Map String KtValue 
+  , sValue :: Map String KtVariable
+  , sVariable :: Map String KtVariable 
   }
 
 data KtFun0 where
   KtFun0 :: (Typeable r) => (KtScope -> IO r) -> KtFun0
 
 data KtFun1 where
-  KtFun1 :: (Typeable a1, Typeable r) => (KtScope -> a1 -> IO r) -> KtFun1
+  KtFun1 :: (Typeable a, Typeable r) => (KtScope -> a -> IO r) -> KtFun1
 
 data KtFun2 where
   KtFun2 :: (Typeable a1, Typeable a2, Typeable r) => (KtScope -> a1 -> a2 -> IO r) -> KtFun2
@@ -78,11 +79,14 @@ type KtFunArg = (Name, KtAnyType)
 
 data KtCommand where
   KtCommandReturn :: KtValue -> KtCommand
-  KtCommandStep   :: (KtScope -> (KtScope, IO ())) -> KtCommand
+  KtCommandStep   :: (KtScope -> IO (KtScope, ())) -> KtCommand
   KtCommandBlock  :: [KtCommand] -> KtCommand
 
 data KtValue where
   KtValue :: (Typeable a) => (KtScope -> IO a) -> KtValue
+
+data KtVariable where
+  KtVariable :: (Typeable a) => KtType a -> a -> KtVariable
 
 data KtType t where
   KtIntType    :: KtType Int

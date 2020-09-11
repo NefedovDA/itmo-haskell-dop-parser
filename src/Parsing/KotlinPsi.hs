@@ -20,9 +20,24 @@ import Kotlin.Printer (runPrint)
 data KotlinPsi a where
   KtPsiFile :: KtDeclarations KotlinPsi -> KotlinPsi KtFile
 
-  KtPsiFun0 :: Name -> KtAnyType -> KotlinPsi (KtFunData KtFun0)
-  KtPsiFun1 :: Name -> KtFunArg -> KtAnyType -> KotlinPsi (KtFunData KtFun1)
-  KtPsiFun2 :: Name -> KtFunArg -> KtFunArg -> KtAnyType -> KotlinPsi (KtFunData KtFun2)
+  KtPsiFun0
+    :: Name
+    -> KtAnyType
+    -> [KotlinPsi KtCommand]
+    -> KotlinPsi (KtFunData KtFun0)
+  KtPsiFun1
+    :: Name
+    -> KtFunArg
+    -> KtAnyType
+    -> [KotlinPsi KtCommand]
+    -> KotlinPsi (KtFunData KtFun1)
+  KtPsiFun2
+    :: Name
+    -> KtFunArg
+    -> KtFunArg
+    -> KtAnyType
+    -> [KotlinPsi KtCommand]
+    -> KotlinPsi (KtFunData KtFun2)
 
   KtPsiReturn :: KotlinPsi KtValue -> KotlinPsi KtCommand
 
@@ -49,18 +64,21 @@ instance Eq KtAnyType where
 instance Eq (KotlinPsi a) where
   (==) :: KotlinPsi a -> KotlinPsi a -> Bool
   KtPsiFile fDecL == KtPsiFile fDecR = fDecL == fDecR
-  KtPsiFun0 nameL rTypeL == KtPsiFun0 nameR rTypeR =
-    (nameL  == nameR ) &&
-    (rTypeL == rTypeR)
-  KtPsiFun1 nameL argL rTypeL == KtPsiFun1 nameR argR rTypeR =
-    (nameL  == nameR ) &&
-    (argL   == argR  ) &&
-    (rTypeL == rTypeR)
-  KtPsiFun2 nameL arg1L arg2L rTypeL == KtPsiFun2 nameR arg1R arg2R rTypeR =
-    (nameL  == nameR ) &&
-    (arg1L  == arg1R ) &&
-    (arg2L  == arg2R ) &&
-    (rTypeL == rTypeR)
+  KtPsiFun0 nameL rTypeL cmdsL == KtPsiFun0 nameR rTypeR cmdsR =
+    (nameL == nameR)
+      && (rTypeL == rTypeR)
+      && (cmdsL == cmdsR)
+  KtPsiFun1 nameL argL rTypeL cmdsL == KtPsiFun1 nameR argR rTypeR cmdsR =
+    (nameL == nameR)
+      && (argL == argR)
+      && (rTypeL == rTypeR)
+      && (cmdsL == cmdsR)
+  KtPsiFun2 nameL arg1L arg2L rTypeL cmdsL == KtPsiFun2 nameR arg1R arg2R rTypeR cmdsR =
+    (nameL == nameR)
+      && (arg1L == arg1R)
+      && (arg2L == arg2R)
+      && (rTypeL == rTypeR)
+      && (cmdsL  == cmdsR)
   KtPsiReturn valueL == KtPsiReturn valueR = valueL == valueR
   KtPsiInt iL == KtPsiInt iR = iL == iR
   KtPsiDouble dL == KtPsiDouble dR = dL == dR
@@ -81,9 +99,9 @@ transform a = case a of
     , kdFun2 = transform <$> kdFun2 dec  
     }
 
-  KtPsiFun0 n t      -> ktFun0 n t
-  KtPsiFun1 n a t    -> ktFun1 n a t
-  KtPsiFun2 n a b t  -> ktFun2 n a b t
+  KtPsiFun0 n t cs     -> ktFun0 n t $ transform <$> cs
+  KtPsiFun1 n a t cs   -> ktFun1 n a t $ transform <$> cs
+  KtPsiFun2 n a b t cs -> ktFun2 n a b t $ transform <$> cs
 
   KtPsiReturn r -> ktReturn $ transform r
 
