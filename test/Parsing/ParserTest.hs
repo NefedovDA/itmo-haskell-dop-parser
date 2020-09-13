@@ -1,7 +1,10 @@
+{-# LANGUAGE GADTs #-}
+
 module Parsing.ParserTest
   ( testParser
   ) where
 
+import Data.Typeable (Typeable)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, testCase, (@?=))
 
@@ -16,53 +19,50 @@ testParser = testGroup "Test Parser module"
   ]
 
 data TestTemplate = TestTemplate
-  { ttName :: String
-  , ttPsi  :: KotlinPsi KtFile
+  { ttName      :: String
+  , ttNeedSplit :: Bool
+  , ttPsi       :: KotlinPsi KtFile
   }
 
 testTemplates :: [TestTemplate]
 testTemplates =
   [ TestTemplate
       { ttName = "Empty file"
+      , ttNeedSplit = False
       , ttPsi = KtPsiFile
-          KtDeclarations
-            { kdFun0 = []
-            , kdFun1 = []
-            , kdFun2 = []
-            }
+          emptyDeclarations
       }
   , TestTemplate
       { ttName = "Single function"
+      , ttNeedSplit = False
       , ttPsi = KtPsiFile
-          KtDeclarations
+          emptyDeclarations
             { kdFun0 =
                 [ KtPsiFun0 "f"
-                  (KtAnyType KtUnitType) 
+                  (KtAnyType KtUnitType)
                   []
                 ]
-            , kdFun1 = []
-            , kdFun2 = []
             }
       }
   , TestTemplate
       { ttName = "Single function with return"
+      , ttNeedSplit = False
       , ttPsi = KtPsiFile
-          KtDeclarations
+          emptyDeclarations
             { kdFun0 =
                 [ KtPsiFun0 "f"
-                  (KtAnyType KtUnitType) 
-                  [ KtPsiReturn $ KtPsiUnit () ]
+                  (KtAnyType KtUnitType)
+                  [ KtPsiReturn . KtPsiWrap $ KtPsiUnit () ]
                 ]
-            , kdFun1 = []
-            , kdFun2 = []
             }
       }
   , TestTemplate
       { ttName = "Several functions"
+      , ttNeedSplit = False
       , ttPsi = KtPsiFile
           KtDeclarations
             { kdFun0 =
-                [ KtPsiFun0 "f" 
+                [ KtPsiFun0 "f"
                     (KtAnyType KtUnitType)
                     []
                 ]
@@ -81,12 +81,151 @@ testTemplates =
                 ]
             }
       }
+  , TestTemplate
+      { ttName = "Arifmetic"
+      , ttNeedSplit = True
+      , ttPsi = KtPsiFile
+          emptyDeclarations
+            { kdFun0 =
+                [ KtPsiFun0 "check_return_Int"
+                    (KtAnyType KtIntType)
+                    [ makeReturn $ KtPsiInt 1 ]
+                , KtPsiFun0 "check_return_Double"
+                    (KtAnyType KtDoubleType)
+                    [ makeReturn $ KtPsiDouble 1.2 ]
+                , KtPsiFun0 "check_Addition"
+                    (KtAnyType KtDoubleType)
+                    [ makeReturn $
+                        KtPsiInt 1 `KtPsiAddition` KtPsiDouble 1.2
+                    ]
+                , KtPsiFun0 "check_Different"
+                    (KtAnyType KtDoubleType)
+                    [ makeReturn $
+                        KtPsiInt 1 `KtPsiDifferent` KtPsiDouble 1.2
+                    ]
+                , KtPsiFun0 "check_Multiplication"
+                    (KtAnyType KtDoubleType)
+                    [ makeReturn $
+                        KtPsiInt 1 `KtPsiMultiplication` KtPsiDouble 1.2
+                    ]
+                , KtPsiFun0 "check_Ratio"
+                    (KtAnyType KtDoubleType)
+                    [ makeReturn $
+                        KtPsiInt 1 `KtPsiRatio` KtPsiDouble 1.2
+                    ]
+                , KtPsiFun0 "check_Negate"
+                    (KtAnyType KtIntType)
+                    [ makeReturn $
+                        KtPsiNegate $ KtPsiInt 1
+                    ]
+                ]
+            }
+      }
+  , TestTemplate
+      { ttName = "Logic operations"
+      , ttNeedSplit = True
+      , ttPsi = KtPsiFile
+          emptyDeclarations
+            { kdFun0 =
+                [ KtPsiFun0 "check_return_True"
+                    (KtAnyType KtBoolType)
+                    [ makeReturn $ KtPsiBool True ]
+                , KtPsiFun0 "check_return_False"
+                    (KtAnyType KtBoolType)
+                    [ makeReturn $ KtPsiBool False ]
+                , KtPsiFun0 "check_Or"
+                    (KtAnyType KtBoolType)
+                    [ makeReturn $
+                        KtPsiBool False `KtPsiOr` KtPsiBool True
+                    ]
+                , KtPsiFun0 "check_And"
+                    (KtAnyType KtBoolType)
+                    [ makeReturn $
+                        KtPsiBool False `KtPsiOr` KtPsiBool True
+                    ]
+                , KtPsiFun0 "check_Not"
+                    (KtAnyType KtBoolType)
+                    [ makeReturn $
+                        KtPsiNot $ KtPsiBool True
+                    ]
+                , KtPsiFun0 "check_Eq_numbers"
+                    (KtAnyType KtBoolType)
+                    [ makeReturn $
+                        KtPsiInt 1 `KtPsiEq` KtPsiInt 1
+                    ]
+                , KtPsiFun0 "check_Lt_numbers"
+                    (KtAnyType KtBoolType)
+                    [ makeReturn $
+                        KtPsiInt 1 `KtPsiLt` KtPsiInt 1
+                    ]
+                , KtPsiFun0 "check_Lte_numbers"
+                    (KtAnyType KtBoolType)
+                    [ makeReturn $
+                        KtPsiInt 1 `KtPsiLte` KtPsiInt 1
+                    ]
+                , KtPsiFun0 "check_Gt_numbers"
+                    (KtAnyType KtBoolType)
+                    [ makeReturn $
+                        KtPsiInt 1 `KtPsiGt` KtPsiInt 1
+                    ]
+                , KtPsiFun0 "check_Gte_numbers"
+                    (KtAnyType KtBoolType)
+                    [ makeReturn $
+                        KtPsiInt 1 `KtPsiGte` KtPsiInt 1
+                    ]
+                ]
+            }
+      }
   ]
+
+makeReturn :: (Typeable r) => KotlinPsi (KtValue r) -> KotlinPsi (KtCommand)
+makeReturn = KtPsiReturn . KtPsiWrap
+
+emptyDeclarations :: KtDeclarations KotlinPsi
+emptyDeclarations =
+  KtDeclarations
+    { kdFun0 = []
+    , kdFun1 = []
+    , kdFun2 = []
+    }
+
+type PsiDecl = KtDeclarations KotlinPsi
+type PsiFunData fun = KotlinPsi (KtFunData fun)
 
 runTests :: TestTree
 runTests = testGroup "Test parsing psi" $
   runTest <$> testTemplates
   where
     runTest :: TestTemplate -> TestTree
-    runTest TestTemplate { ttName = name, ttPsi = psi } = testCase name $
-      parseInput (show psi) @?= psi
+    runTest TestTemplate { ttName = name, ttNeedSplit = needSplit, ttPsi = psi } =
+      if needSplit
+      then
+        testGroup name $
+          runTest <$> splitTree psi
+      else
+        testCase name $
+          parseInput (show psi) @?= psi
+
+    splitTree :: KotlinPsi KtFile -> [TestTemplate]
+    splitTree (KtPsiFile declarations) = concat $
+      [ splitDeclarations kdFun0 $ \decl f -> decl { kdFun0 = [f] }
+      , splitDeclarations kdFun1 $ \decl f -> decl { kdFun1 = [f] }
+      , splitDeclarations kdFun2 $ \decl f -> decl { kdFun2 = [f] }
+      ] <*> [declarations]
+
+    splitDeclarations
+      :: (PsiDecl -> [PsiFunData fun])
+      -> (PsiDecl -> PsiFunData fun -> PsiDecl)
+      -> PsiDecl
+      -> [TestTemplate]
+    splitDeclarations getFuns putFun declarations =
+      flip fmap (getFuns declarations) $ \f ->
+        TestTemplate
+          { ttName =
+              case f of
+                KtPsiFun0 name _ _     -> name
+                KtPsiFun1 name _ _ _   -> name
+                KtPsiFun2 name _ _ _ _ -> name
+          , ttNeedSplit = False
+          , ttPsi = KtPsiFile $ putFun emptyDeclarations f
+          }

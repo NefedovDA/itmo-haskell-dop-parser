@@ -44,6 +44,23 @@ import qualified Parsing.Utils     as U
 
     STR         { T.Token T.Str _ $$ }
 
+    '+'         { T.Token T.Plus  _ _ }
+    '-'         { T.Token T.Minus _ _ }
+    '*'         { T.Token T.Mull  _ _ }
+    '/'         { T.Token T.Div   _ _ }
+
+    '&&'        { T.Token T.And _ _ }
+    '||'        { T.Token T.Or  _ _ }
+    '!'         { T.Token T.Not _ _ }
+
+    '=='        { T.Token T.Eq     _ _ }
+    '!='        { T.Token T.NotEq  _ _ }
+
+    '>'         { T.Token T.Gt  _ _ }
+    '>='        { T.Token T.Gte _ _ }
+    '<'         { T.Token T.Lt  _ _ }
+    '<='        { T.Token T.Lte _ _ }
+
     '('         { T.Token T.OCBracket _ _ }
     ')'         { T.Token T.CCBracket _ _ }
 
@@ -88,22 +105,55 @@ Command
   : Return ';'                                    { $1 }
 
 Return
-  : RETURN                                        { KT.KtPsiReturn $ KT.KtPsiUnit () }
-  | RETURN Expr                                   { KT.KtPsiReturn $2                }
+  : RETURN                                        { U.defaultReturn   }
+  | RETURN Value                                  { KT.KtPsiReturn $2 }
 
-Expr
-  : Double                                        { $1 }
+Value
+  : Or                                            { $1 }
+
+Or
+  : Or '||' And                                   { KT.KtPsiOr $1 $3 }
+  | And                                           { $1               }
+
+And
+  : And '&&' Eq                                   { KT.KtPsiAnd $1 $3 }
+  | Eq                                            { $1                }
+
+Eq
+  : Eq '==' Comp                                  { KT.KtPsiEq    $1 $3 }
+  | Eq '!=' Comp                                  { KT.KtPsiNotEq $1 $3 }
+  | Comp                                          { $1                  }
+
+Comp
+  : Comp '>'  Plus                                { KT.KtPsiGt  $1 $3 }
+  | Comp '<'  Plus                                { KT.KtPsiLt  $1 $3 }
+  | Comp '>=' Plus                                { KT.KtPsiGte $1 $3 }
+  | Comp '<=' Plus                                { KT.KtPsiLte $1 $3 }
+  | Plus                                          { $1                }
+
+Plus
+  : Plus '+' Mult                                 { KT.KtPsiAddition  $1 $3 }
+  | Plus '-' Mult                                 { KT.KtPsiDifferent $1 $3 }
+  | Mult                                          { $1                      }
+
+Mult
+  : Mult '*' Unary                                { KT.KtPsiMultiplication $1 $3 }
+  | Mult '/' Unary                                { KT.KtPsiRatio          $1 $3 }
+  | Unary                                         { $1                           }
+
+Unary
+  : '!' Unary                                     { KT.KtPsiNot    $2 }
+  | '-' Unary                                     { KT.KtPsiNegate $2 }
+  | Target                                        { $1                }
+
+
+Target
+  : '(' Value ')'                                 { $2 }
+  | Double                                        { $1 }
   | Int                                           { $1 }
   | String                                        { $1 }
   | Bool                                          { $1 }
   | Unit                                          { $1 }
-
-Type
-  : UNIT                                          { KT.KtAnyType KT.KtUnitType   }
-  | INT                                           { KT.KtAnyType KT.KtIntType    }
-  | DOUBLE                                        { KT.KtAnyType KT.KtDoubleType }
-  | BOOL                                          { KT.KtAnyType KT.KtBoolType   }
-  | STRING                                        { KT.KtAnyType KT.KtStringType }
 
 Int
   : INT_NUM                                       {% U.checkedInt $1 }
@@ -120,3 +170,10 @@ Bool
 
 Unit
   : UNIT                                          { KT.KtPsiUnit () }
+
+Type
+  : UNIT                                          { KT.KtAnyType KT.KtUnitType   }
+  | INT                                           { KT.KtAnyType KT.KtIntType    }
+  | DOUBLE                                        { KT.KtAnyType KT.KtDoubleType }
+  | BOOL                                          { KT.KtAnyType KT.KtBoolType   }
+  | STRING                                        { KT.KtAnyType KT.KtStringType }

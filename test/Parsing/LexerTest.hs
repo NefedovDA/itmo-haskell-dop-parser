@@ -56,6 +56,17 @@ testSymbols = testGroup "Test lexing symbols"
   , testCase "Lexing '..'" $ checkSingleTokenLexing ".." DPoint
   ]
 
+testOperations :: TestTree
+testOperations = testGroup "Test lexing operations"
+  [ testCase "Lexing '+'"   $ checkSingleTokenLexing "+"   Plus
+  , testCase "Lexing '-'"   $ checkSingleTokenLexing "-"   Minus
+  , testCase "Lexing '*'"   $ checkSingleTokenLexing "*"   Mull
+  , testCase "Lexing '/'"   $ checkSingleTokenLexing "/"   Div
+  , testCase "Lexing '&&'"  $ checkSingleTokenLexing "&&"  And
+  , testCase "Lexing '||'"  $ checkSingleTokenLexing "||"  Or
+  , testCase "Lexing '!'"   $ checkSingleTokenLexing "!"   Not
+  ]
+
 testNames :: TestTree
 testNames = testGroup "Test lexing words"
   [ testCase "Lexing name 'a'"   $ checkSingleTokenLexing "a"   Name

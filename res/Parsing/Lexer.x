@@ -46,10 +46,27 @@ tokens :-
 
     [$alpha][$alpha $digit]*                    { tok Name }
 
-    \-?([1-9][$digit]*|0)                       { tok IntNum    }
-    \-?([1-9][$digit]*\.[$digit]+|0\.[$digit]+) { tok DoubleNum }
+    [1-9][$digit]*|0                            { tok IntNum    }
+    [1-9][$digit]*\.[$digit]+|0\.[$digit]+      { tok DoubleNum }
 
     \"[^\"]*\"                                  { tok Str }
+
+    \+                                          { tok Plus  }
+    \-                                          { tok Minus }
+    \*                                          { tok Mull  }
+    \/                                          { tok Div   }
+
+    \=\=                                        { tok Eq    }
+    \!\=                                        { tok NotEq }
+
+    \>\=                                        { tok Gte }
+    \<\=                                        { tok Lte }
+    \>                                          { tok Gt  }
+    \<                                          { tok Lt  }
+
+    \&\&                                        { tok And }
+    \|\|                                        { tok Or  }
+    \!                                          { tok Not }
 
     \(                                          { tok OCBracket }
     \)                                          { tok CCBracket }
@@ -98,6 +115,19 @@ data TokenType
   | TypeDouble
   | TypeBool
   | TypeString
+  | Plus
+  | Minus
+  | Mull
+  | Div
+  | And
+  | Or
+  | Not
+  | Eq
+  | NotEq
+  | Gt
+  | Gte
+  | Lt
+  | Lte
   deriving (Show, Eq)
 
 data Token = Token

@@ -11,6 +11,8 @@ module Parsing.Utils
   , checkedInt
   , checkedDouble
   , updatedString
+  
+  , defaultReturn
   ) where
 
 import Data.List (intercalate)
@@ -66,17 +68,17 @@ unproxyFunDec proxy = KtDeclarations
   , kdFun2 = pfdFun2 proxy
   }
 
-checkedInt :: String -> Result (KotlinPsi KtValue)
+checkedInt :: String -> Result (KotlinPsi KtAnyValue)
 checkedInt str = case readMaybe @Int str of
   Nothing -> failE $ "Illegal Int constant: " ++ str
   Just i  -> returnE $ KtPsiInt i
 
-checkedDouble :: String -> Result (KotlinPsi KtValue)
+checkedDouble :: String -> Result (KotlinPsi KtAnyValue)
 checkedDouble str = case readMaybe @Double str of
   Nothing -> failE $ "Illegal Double constant: " ++ str
   Just d  -> returnE $ KtPsiDouble d
 
-updatedString :: String -> KotlinPsi KtValue
+updatedString :: String -> KotlinPsi KtAnyValue
 updatedString (_:str) = KtPsiString $ dropLast str
 
 dropLast :: [a] -> [a]
@@ -85,3 +87,6 @@ dropLast xs = f xs (tail xs)
       f :: [a] -> [a] -> [a] 
       f (x:xs) (y:ys) = x : f xs ys
       f _ _ = []
+
+defaultReturn :: KotlinPsi KtCommand
+defaultReturn = KtPsiReturn $ KtPsiUnit ()

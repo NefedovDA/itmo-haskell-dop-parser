@@ -54,19 +54,61 @@ instance Kotlin Printer where
   ktReturn :: Printer KtAnyValue -> Printer KtCommand
   ktReturn result = (Printer "return ") <> castP result <> (Printer ";")
 
-  ktInt :: Int -> Printer (KtValue Int)
+  ktAddition :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktAddition = printBinOp "+"
+
+  ktDifferent :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktDifferent = printBinOp "-"
+
+  ktMultiplication :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktMultiplication = printBinOp "*"
+
+  ktRatio :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktRatio = printBinOp "/"
+
+  ktNegate :: Printer KtAnyValue -> Printer KtAnyValue
+  ktNegate = printUnoOp "-"
+
+  ktAnd :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktAnd = printBinOp "&&"
+
+  ktOr :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktOr = printBinOp "||"
+  
+  ktNot :: Printer KtAnyValue -> Printer KtAnyValue
+  ktNot = printUnoOp "!"
+
+  ktEq :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktEq = printBinOp "=="
+  
+  ktNotEq :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktNotEq = printBinOp "!="
+
+  ktGt :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktGt = printBinOp ">"
+
+  ktGte :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktGte = printBinOp ">="
+
+  ktLt :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktLt = printBinOp "<"
+
+  ktLte :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktLte = printBinOp "<="
+
+  ktInt :: Int -> Printer KtAnyValue
   ktInt = Printer . show
   
-  ktDouble :: Double -> Printer (KtValue Double)
+  ktDouble :: Double -> Printer KtAnyValue
   ktDouble = Printer . show
   
-  ktString :: String -> Printer (KtValue String)
+  ktString :: String -> Printer KtAnyValue
   ktString s = Printer $ "\"" ++ s ++  "\""
   
-  ktBool :: Bool -> Printer (KtValue Bool)
+  ktBool :: Bool -> Printer KtAnyValue
   ktBool b = Printer $ if b then "true" else "false"
   
-  ktUnit :: () -> Printer (KtValue ())
+  ktUnit :: () -> Printer KtAnyValue
   ktUnit () = Printer $ "Unit"
 
 instance Show (KtType t) where
@@ -85,9 +127,26 @@ instance Show KtAnyType where
 showKtArg :: KtFunArg -> String
 showKtArg (name, aType) = name ++ ": " ++ show aType
 
-printKtFun :: Name -> [KtFunArg] -> KtAnyType -> [Printer KtCommand] -> Printer (KtFunData fun)
+printKtFun
+  :: Name
+  -> [KtFunArg]
+  -> KtAnyType
+  -> [Printer KtCommand]
+  -> Printer (KtFunData fun)
 printKtFun name args rType cmds = Printer $ 
-  "fun " ++ name ++ "(" ++ (intercalate ", " $ showKtArg <$> args) ++ "): " ++ show rType
+  "fun " ++ name ++ "(" ++ (intercalate ", " $ showKtArg <$> args) ++ "): "
+    ++ show rType
     ++ " {\n"
     ++ foldMap (\p -> runPrint p ++ "\n") cmds
     ++ "}\n"
+
+printBinOp :: Name -> Printer a -> Printer b -> Printer c
+printBinOp opName ivl ivr =
+  (Printer "(")
+    <> castP ivl
+    <> (Printer $ " " ++ opName ++ " ")
+    <> castP ivr
+    <> (Printer ")")
+
+printUnoOp :: Name -> Printer a -> Printer b
+printUnoOp opName iv = (Printer opName) <> castP iv

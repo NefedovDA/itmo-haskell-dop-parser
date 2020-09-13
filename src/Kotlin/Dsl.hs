@@ -35,17 +35,66 @@ import Data.Typeable (Typeable)
 class Kotlin expr where
   ktFile :: KtDeclarations expr -> expr KtFile
 
-  ktFun0 :: Name -> KtAnyType -> [expr KtCommand] -> expr (KtFunData KtFun0)
-  ktFun1 :: Name -> KtFunArg -> KtAnyType -> [expr KtCommand] -> expr (KtFunData KtFun1)
-  ktFun2 :: Name -> KtFunArg -> KtFunArg -> KtAnyType -> [expr KtCommand] -> expr (KtFunData KtFun2)
+  ktFun0
+    :: Name
+    -> KtAnyType
+    -> [expr KtCommand]
+    -> expr (KtFunData KtFun0)
+
+  ktFun1
+    :: Name
+    -> KtFunArg
+    -> KtAnyType
+    -> [expr KtCommand]
+    -> expr (KtFunData KtFun1)
+
+  ktFun2
+    :: Name
+    -> KtFunArg
+    -> KtFunArg
+    -> KtAnyType
+    -> [expr KtCommand]
+    -> expr (KtFunData KtFun2)
 
   ktReturn :: expr KtAnyValue -> expr KtCommand
+  
+  ktAddition :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
 
-  ktInt    :: Int    -> expr (KtValue Int)
-  ktDouble :: Double -> expr (KtValue Double)
-  ktString :: String -> expr (KtValue String)
-  ktBool   :: Bool   -> expr (KtValue Bool)
-  ktUnit   :: ()     -> expr (KtValue ())
+  ktDifferent :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+
+  ktMultiplication :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+
+  ktRatio :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+
+  ktNegate :: expr KtAnyValue -> expr KtAnyValue
+
+  ktAnd :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+
+  ktOr :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  
+  ktNot :: expr KtAnyValue -> expr KtAnyValue
+
+  ktEq :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  
+  ktNotEq :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+
+  ktGt :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+
+  ktGte :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+
+  ktLt :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+
+  ktLte :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+
+  ktInt    :: Int    -> expr KtAnyValue
+
+  ktDouble :: Double -> expr KtAnyValue
+
+  ktString :: String -> expr KtAnyValue
+
+  ktBool   :: Bool   -> expr KtAnyValue
+
+  ktUnit   :: ()     -> expr KtAnyValue
 
 type KtFile = IO ()
 
@@ -65,13 +114,19 @@ data KtScope = KtScope
   }
 
 data KtFun0 where
-  KtFun0 :: (Typeable r) => (KtScope -> IO r) -> KtFun0
+  KtFun0
+    :: (Typeable r) 
+    => (KtScope -> IO r) -> KtFun0
 
 data KtFun1 where
-  KtFun1 :: (Typeable a, Typeable r) => (KtScope -> a -> IO r) -> KtFun1
+  KtFun1
+    :: (Typeable a, Typeable r)
+    => (KtScope -> a -> IO r) -> KtFun1
 
 data KtFun2 where
-  KtFun2 :: (Typeable a1, Typeable a2, Typeable r) => (KtScope -> a1 -> a2 -> IO r) -> KtFun2
+  KtFun2
+    :: (Typeable a1, Typeable a2, Typeable r)
+    => (KtScope -> a1 -> a2 -> IO r) -> KtFun2
 
 type KtFunData fun = (Name, [KtAnyType], fun)
 
