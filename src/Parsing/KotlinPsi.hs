@@ -40,6 +40,11 @@ data KotlinPsi a where
     -> KotlinPsi (KtFunData KtFun2)
 
   KtPsiReturn :: KotlinPsi KtAnyValue -> KotlinPsi KtCommand
+  KtPsiValueCommand :: KotlinPsi KtAnyValue -> KotlinPsi KtCommand
+  
+  KtPsiCallFun0 :: Name -> KotlinPsi KtAnyValue
+  KtPsiCallFun1 :: Name -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
+  KtPsiCallFun2 :: Name -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
 
   KtPsiAddition :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
   KtPsiDifferent :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
@@ -98,6 +103,16 @@ instance Eq (KotlinPsi a) where
       && (cmdsL  == cmdsR)
 
   KtPsiReturn valueL == KtPsiReturn valueR = valueL == valueR
+  KtPsiValueCommand valueL == KtPsiValueCommand valueR = valueL == valueR
+  
+  KtPsiCallFun0 nameL == KtPsiCallFun0 nameR = nameL == nameR
+  KtPsiCallFun1 nameL aL == KtPsiCallFun1 nameR aR =
+    (nameL == nameR)
+      && (aL == aR)
+  KtPsiCallFun2 nameL a1L a2L == KtPsiCallFun2 nameR a1R a2R =
+    (nameL == nameR)
+      && (a1L == a1R)
+      && (a2L == a2R)
 
   KtPsiAddition lvL rvL == KtPsiAddition lvR rvR =
     (lvL == lvR) && (rvL == rvL)
@@ -153,7 +168,12 @@ transform a = case a of
   KtPsiFun2 n a b t cs -> ktFun2 n a b t $ transform <$> cs
 
   KtPsiReturn r -> ktReturn $ transform r
+  KtPsiValueCommand r -> ktValueCommand $ transform r
   
+  KtPsiCallFun0 n -> ktCallFun0 n
+  KtPsiCallFun1 n a -> ktCallFun1 n $ transform a
+  KtPsiCallFun2 n a1 a2 -> ktCallFun2 n (transform a1) (transform a2)
+
   KtPsiAddition lv rv       -> ktAddition (transform lv) (transform rv)
   KtPsiDifferent lv rv      -> ktDifferent (transform lv) (transform rv)
   KtPsiMultiplication lv rv -> ktMultiplication (transform lv) (transform rv)
@@ -166,7 +186,7 @@ transform a = case a of
   KtPsiGte lv rv            -> ktGte (transform lv) (transform rv)
   KtPsiLt lv rv             -> ktLt (transform lv) (transform rv)
   KtPsiLte lv rv            -> ktLte (transform lv) (transform rv)
-  
+
   KtPsiNot v    -> ktNot $ transform v
   KtPsiNegate v -> ktNegate $ transform v
 

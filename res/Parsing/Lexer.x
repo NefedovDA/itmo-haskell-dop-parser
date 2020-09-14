@@ -44,6 +44,9 @@ tokens :-
     Bool                                        { tok TypeBool   }
     String                                      { tok TypeString }
 
+    readLine\(\)\!\!\.toInt                     { tok Name }
+    readLine\(\)\!\!\.toDouble                  { tok Name }
+
     [$alpha][$alpha $digit]*                    { tok Name }
 
     [1-9][$digit]*|0                            { tok IntNum    }

@@ -103,10 +103,14 @@ CommandList
 
 Command
   : Return ';'                                    { $1 }
+  | JustValue ';'                                 { $1 }
 
 Return
   : RETURN                                        { U.defaultReturn   }
   | RETURN Value                                  { KT.KtPsiReturn $2 }
+
+JustValue
+  : Value                                         { KT.KtPsiValueCommand $1 }
 
 Value
   : Or                                            { $1 }
@@ -149,11 +153,18 @@ Unary
 
 Target
   : '(' Value ')'                                 { $2 }
+  | CallFun                                       { $1 }
   | Double                                        { $1 }
   | Int                                           { $1 }
   | String                                        { $1 }
   | Bool                                          { $1 }
   | Unit                                          { $1 }
+
+CallFun
+  : NAME '(' ')' '!' '!'                          { KT.KtPsiCallFun0 $1       }
+  | NAME '(' ')'                                  { KT.KtPsiCallFun0 $1       }
+  | NAME '(' Value ')'                            { KT.KtPsiCallFun1 $1 $3    }
+  | NAME '(' Value ',' Value ')'                  { KT.KtPsiCallFun2 $1 $3 $5 }
 
 Int
   : INT_NUM                                       {% U.checkedInt $1 }

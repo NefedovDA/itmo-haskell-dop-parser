@@ -53,6 +53,18 @@ instance Kotlin Printer where
   
   ktReturn :: Printer KtAnyValue -> Printer KtCommand
   ktReturn result = (Printer "return ") <> castP result <> (Printer ";")
+  
+  ktValueCommand :: Printer KtAnyValue -> Printer KtCommand
+  ktValueCommand v = castP v <> (Printer ";")
+  
+  ktCallFun0 :: Name -> Printer KtAnyValue
+  ktCallFun0 name = printCallFun name []
+  
+  ktCallFun1 :: Name -> Printer KtAnyValue -> Printer KtAnyValue
+  ktCallFun1 name arg = printCallFun name [arg]
+  
+  ktCallFun2 :: Name -> Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
+  ktCallFun2 name arg1 arg2 = printCallFun name [arg1, arg2]
 
   ktAddition :: Printer KtAnyValue -> Printer KtAnyValue -> Printer KtAnyValue
   ktAddition = printBinOp "+"
@@ -150,3 +162,7 @@ printBinOp opName ivl ivr =
 
 printUnoOp :: Name -> Printer a -> Printer b
 printUnoOp opName iv = (Printer opName) <> castP iv
+
+printCallFun :: Name -> [Printer a] -> Printer b
+printCallFun name args = Printer $
+  name ++ "(" ++ (intercalate ", " $ runPrint <$> args) ++ ")"

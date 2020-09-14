@@ -18,8 +18,9 @@ module Kotlin.Dsl
   
   , KtCommand(..)
 
-  , KtValue(..)
   , KtAnyValue(..)
+  , KtValue(..)
+  , HiddenIO(..)
 
   , KtVariable(..)
 
@@ -57,6 +58,14 @@ class Kotlin expr where
     -> expr (KtFunData KtFun2)
 
   ktReturn :: expr KtAnyValue -> expr KtCommand
+  
+  ktValueCommand :: expr KtAnyValue -> expr KtCommand
+  
+  ktCallFun0 :: Name -> expr KtAnyValue
+  
+  ktCallFun1 :: Name -> expr KtAnyValue -> expr KtAnyValue
+  
+  ktCallFun2 :: Name -> expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
   
   ktAddition :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
 
@@ -136,13 +145,14 @@ type KtFunArg = (Name, KtAnyType)
 
 data KtCommand where
   KtCommandReturn :: KtAnyValue -> KtCommand
-  KtCommandStep   :: (KtScope -> IO (KtScope, ())) -> KtCommand
+  KtCommandStep   :: (KtScope -> IO KtScope) -> KtCommand
   KtCommandBlock  :: [KtCommand] -> KtCommand
 
-data KtAnyValue where
-  KtAnyValue :: (Typeable a) => KtValue a -> KtAnyValue
+type KtAnyValue = KtScope -> HiddenIO
+type KtValue a = KtScope -> IO a
 
-type KtValue a = (KtScope -> IO a)
+data HiddenIO where
+  HiddenIO :: (Typeable a) => IO a -> HiddenIO
 
 data KtVariable where
   KtVariable :: (Typeable a) => KtType a -> a -> KtVariable
