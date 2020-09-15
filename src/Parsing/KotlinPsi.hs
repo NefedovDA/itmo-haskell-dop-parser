@@ -39,33 +39,33 @@ data KotlinPsi a where
     -> [KotlinPsi KtCommand]
     -> KotlinPsi (KtFunData KtFun2)
 
-  KtPsiReturn :: KotlinPsi KtAnyValue -> KotlinPsi KtCommand
-  KtPsiValueCommand :: KotlinPsi KtAnyValue -> KotlinPsi KtCommand
+  KtPsiReturn :: KotlinPsi KtValue -> KotlinPsi KtCommand
+  KtPsiValueCommand :: KotlinPsi KtValue -> KotlinPsi KtCommand
   
-  KtPsiCallFun0 :: Name -> KotlinPsi KtAnyValue
-  KtPsiCallFun1 :: Name -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiCallFun2 :: Name -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
+  KtPsiCallFun0 :: Name -> KotlinPsi KtValue
+  KtPsiCallFun1 :: Name -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiCallFun2 :: Name -> KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
 
-  KtPsiAddition :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiDifferent :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiMultiplication :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiRatio :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiNegate :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiAnd :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiOr :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiNot :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiEq :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiNotEq :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiGt :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiGte :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiLt :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
-  KtPsiLte :: KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue -> KotlinPsi KtAnyValue
+  KtPsiAddition :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiDifferent :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiMultiplication :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiRatio :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiNegate :: KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiAnd :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiOr :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiNot :: KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiEq :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiNotEq :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiGt :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiGte :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiLt :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiLte :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
 
-  KtPsiInt    :: Int    -> KotlinPsi KtAnyValue
-  KtPsiDouble :: Double -> KotlinPsi KtAnyValue
-  KtPsiString :: String -> KotlinPsi KtAnyValue
-  KtPsiBool   :: Bool   -> KotlinPsi KtAnyValue
-  KtPsiUnit   :: ()     -> KotlinPsi KtAnyValue
+  KtPsiInt    :: Int    -> KotlinPsi KtValue
+  KtPsiDouble :: Double -> KotlinPsi KtValue
+  KtPsiString :: String -> KotlinPsi KtValue
+  KtPsiBool   :: Bool   -> KotlinPsi KtValue
+  KtPsiUnit   :: ()     -> KotlinPsi KtValue
 
 instance Eq (KtDeclarations KotlinPsi) where
   (==) :: KtDeclarations KotlinPsi -> KtDeclarations KotlinPsi -> Bool

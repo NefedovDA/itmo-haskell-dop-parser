@@ -2,29 +2,27 @@
 
 module Kotlin.Dsl
   ( Kotlin(..)
-
-  , KtFile(..)
   
   , KtDeclarations(..)
   , KtScope(..)
 
-  , KtFun0(..)
-  , KtFun1(..)
-  , KtFun2(..)
-  
-  , KtFunData(..)
+  , KtFile
 
-  , KtFunArg(..)
+  , KtFun0
+  , KtFun1
+  , KtFun2
   
+  , KtFunData
+
+  , KtFunArg
+  
+  , KtValue
+
+  , Name
+
   , KtCommand(..)
 
-  , KtAnyValue(..)
-  , KtValue(..)
   , HiddenIO(..)
-
-  , KtVariable(..)
-
-  , Name(..)
 
   , KtType(..)
   , KtAnyType(..)
@@ -57,55 +55,53 @@ class Kotlin expr where
     -> [expr KtCommand]
     -> expr (KtFunData KtFun2)
 
-  ktReturn :: expr KtAnyValue -> expr KtCommand
-  
-  ktValueCommand :: expr KtAnyValue -> expr KtCommand
-  
-  ktCallFun0 :: Name -> expr KtAnyValue
-  
-  ktCallFun1 :: Name -> expr KtAnyValue -> expr KtAnyValue
-  
-  ktCallFun2 :: Name -> expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
-  
-  ktAddition :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  ktReturn :: expr KtValue -> expr KtCommand
 
-  ktDifferent :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  ktValueCommand :: expr KtValue -> expr KtCommand
 
-  ktMultiplication :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  ktCallFun0 :: Name -> expr KtValue
 
-  ktRatio :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  ktCallFun1 :: Name -> expr KtValue -> expr KtValue
 
-  ktNegate :: expr KtAnyValue -> expr KtAnyValue
+  ktCallFun2 :: Name -> expr KtValue -> expr KtValue -> expr KtValue
 
-  ktAnd :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  ktAddition :: expr KtValue -> expr KtValue -> expr KtValue
 
-  ktOr :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
-  
-  ktNot :: expr KtAnyValue -> expr KtAnyValue
+  ktDifferent :: expr KtValue -> expr KtValue -> expr KtValue
 
-  ktEq :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
-  
-  ktNotEq :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  ktMultiplication :: expr KtValue -> expr KtValue -> expr KtValue
 
-  ktGt :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  ktRatio :: expr KtValue -> expr KtValue -> expr KtValue
 
-  ktGte :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  ktNegate :: expr KtValue -> expr KtValue
 
-  ktLt :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  ktAnd :: expr KtValue -> expr KtValue -> expr KtValue
 
-  ktLte :: expr KtAnyValue -> expr KtAnyValue -> expr KtAnyValue
+  ktOr :: expr KtValue -> expr KtValue -> expr KtValue
 
-  ktInt    :: Int    -> expr KtAnyValue
+  ktNot :: expr KtValue -> expr KtValue
 
-  ktDouble :: Double -> expr KtAnyValue
+  ktEq :: expr KtValue -> expr KtValue -> expr KtValue
 
-  ktString :: String -> expr KtAnyValue
+  ktNotEq :: expr KtValue -> expr KtValue -> expr KtValue
 
-  ktBool   :: Bool   -> expr KtAnyValue
+  ktGt :: expr KtValue -> expr KtValue -> expr KtValue
 
-  ktUnit   :: ()     -> expr KtAnyValue
+  ktGte :: expr KtValue -> expr KtValue -> expr KtValue
 
-type KtFile = IO ()
+  ktLt :: expr KtValue -> expr KtValue -> expr KtValue
+
+  ktLte :: expr KtValue -> expr KtValue -> expr KtValue
+
+  ktInt    :: Int -> expr KtValue
+
+  ktDouble :: Double -> expr KtValue
+
+  ktString :: String -> expr KtValue
+
+  ktBool   :: Bool -> expr KtValue
+
+  ktUnit   :: () -> expr KtValue
 
 data KtDeclarations expr = KtDeclarations
   { kdFun0 :: [expr (KtFunData KtFun0)]
@@ -118,44 +114,33 @@ data KtScope = KtScope
   , sFun1 :: Map String KtFun1
   , sFun2 :: Map String KtFun2
   
-  , sValue :: Map String KtVariable
-  , sVariable :: Map String KtVariable 
+  , sValue :: Map String HiddenIO
+  , sVariable :: Map String HiddenIO
   }
 
-data KtFun0 where
-  KtFun0
-    :: (Typeable r) 
-    => (KtScope -> IO r) -> KtFun0
+type KtFile = IO ()
 
-data KtFun1 where
-  KtFun1
-    :: (Typeable a, Typeable r)
-    => (KtScope -> a -> IO r) -> KtFun1
+type KtFun0 = KtScope -> HiddenIO
 
-data KtFun2 where
-  KtFun2
-    :: (Typeable a1, Typeable a2, Typeable r)
-    => (KtScope -> a1 -> a2 -> IO r) -> KtFun2
+type KtFun1 = KtScope -> HiddenIO -> HiddenIO
 
-type KtFunData fun = (Name, [KtAnyType], fun)
+type KtFun2 = KtScope -> HiddenIO -> HiddenIO -> HiddenIO
+
+type KtFunData fun = (Name, fun)
 
 type Name = String
 
 type KtFunArg = (Name, KtAnyType)
 
+type KtValue = KtScope -> HiddenIO
+
 data KtCommand where
-  KtCommandReturn :: KtAnyValue -> KtCommand
+  KtCommandReturn :: KtValue -> KtCommand
   KtCommandStep   :: (KtScope -> IO KtScope) -> KtCommand
   KtCommandBlock  :: [KtCommand] -> KtCommand
 
-type KtAnyValue = KtScope -> HiddenIO
-type KtValue a = KtScope -> IO a
-
 data HiddenIO where
-  HiddenIO :: (Typeable a) => IO a -> HiddenIO
-
-data KtVariable where
-  KtVariable :: (Typeable a) => KtType a -> a -> KtVariable
+  HiddenIO :: (Typeable a) => KtType a -> IO a -> HiddenIO
 
 data KtType t where
   KtIntType    :: KtType Int

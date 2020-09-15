@@ -68,17 +68,17 @@ unproxyFunDec proxy = KtDeclarations
   , kdFun2 = pfdFun2 proxy
   }
 
-checkedInt :: String -> Result (KotlinPsi KtAnyValue)
+checkedInt :: String -> Result (KotlinPsi KtValue)
 checkedInt str = case readMaybe @Int str of
   Nothing -> failE $ "Illegal Int constant: " ++ str
   Just i  -> returnE $ KtPsiInt i
 
-checkedDouble :: String -> Result (KotlinPsi KtAnyValue)
+checkedDouble :: String -> Result (KotlinPsi KtValue)
 checkedDouble str = case readMaybe @Double str of
   Nothing -> failE $ "Illegal Double constant: " ++ str
   Just d  -> returnE $ KtPsiDouble d
 
-updatedString :: String -> KotlinPsi KtAnyValue
+updatedString :: String -> KotlinPsi KtValue
 updatedString (_:str) = KtPsiString $ dropLast str
 
 dropLast :: [a] -> [a]
