@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 module Parsing.ParseInput
   ( parseInput
   , parseInputExe
@@ -5,21 +7,21 @@ module Parsing.ParseInput
   ) where
 
 import Kotlin.Dsl         (Kotlin, KtFile)
-import Kotlin.Interpreter (interpret)
-import Kotlin.Printer     (runPrint)
+import Kotlin.Interpret (interpret)
+import Kotlin.Printer     (Printer)
 import Parsing.KotlinPsi  (KotlinPsi, transform)
 import Parsing.Lexer      (alexScanTokens)
 import Parsing.Parser     (happyParserExpression)
 import Parsing.Result     (Result(..))
 
-parseInput :: String -> KotlinPsi KtFile
+parseInput :: String -> KotlinPsi (KtFile IO)
 parseInput input =
   case happyParserExpression $ alexScanTokens input of
     Ok file    -> file
     Failed msg -> error msg
 
 parseInputStr :: String -> String
-parseInputStr = runPrint . transform <$> parseInput
+parseInputStr = show . transform @Printer <$> parseInput
 
 parseInputExe :: String -> IO ()
 parseInputExe = interpret . transform <$> parseInput

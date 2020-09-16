@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
 
-module Kotlin.Interpreter
+module Kotlin.Interpret
   ( Interpret(..)
   ) where
 
@@ -21,7 +21,7 @@ import Kotlin.Utils
 newtype Interpret a = Interpret { interpret :: a }
 
 instance Kotlin Interpret where
-  ktFile :: KtDeclarations Interpret -> Interpret KtFile
+  ktFile :: (Console c) => KtDeclarations Interpret c -> Interpret (KtFile c)
   ktFile declarations = Interpret $ do
     let scope = KtScope
           { sFun0 = foldr iterator readFuns  $ kdFun0 declarations
@@ -33,32 +33,34 @@ instance Kotlin Interpret where
           }
     case interpret (ktCallFun0 "main") scope of
       HiddenIO KtUnitType ioMain -> ioMain
-      _ -> fail "Execution error: `main : () -> Unit` function not defined!"
+      _ -> error "Execution error: `main : () -> Unit` function not defined!"
     where
       iterator :: Interpret (KtFunData a) -> Map String a -> Map String a
       iterator iFun funs = uncurry insert (interpret iFun) funs
 
   ktFun0
-    :: Name
+    :: forall c. (Console c)
+    => Name
     -> KtAnyType
-    -> [Interpret KtCommand]
-    -> Interpret (KtFunData KtFun0)
+    -> [Interpret (KtCommand c)]
+    -> Interpret (KtFunData (KtFun0 c))
   ktFun0 name raType@(KtAnyType (rType :: KtType rT)) cmds =
     Interpret (fun2key name [], fun0)
     where
-      fun0 :: KtFun0
+      fun0 :: (Console c) => (KtFun0 c)
       fun0 = mkFunBody rType cmds
 
   ktFun1
-    :: Name
+    :: forall c. (Console c)
+    => Name
     -> KtFunArg
     -> KtAnyType
-    -> [Interpret KtCommand]
-    -> Interpret (KtFunData KtFun1)
+    -> [Interpret (KtCommand c)]
+    -> Interpret (KtFunData (KtFun1 c))
   ktFun1 name (aName, aaType@(KtAnyType aType)) (KtAnyType rType) cmds =
     Interpret (fun2key name [aaType], fun1)
     where
-      fun1 :: KtFun1
+      fun1 :: (KtFun1 c)
       fun1 = \scope a@(HiddenIO afType _) ->
         if afType @==@ aType
         then
@@ -71,12 +73,13 @@ instance Kotlin Interpret where
               ++ "`" ++ name  ++ "`"
 
   ktFun2
-    :: Name
+    :: forall c. (Console c)
+    => Name
     -> KtFunArg
     -> KtFunArg
     -> KtAnyType
-    -> [Interpret KtCommand]
-    -> Interpret (KtFunData KtFun2)
+    -> [Interpret (KtCommand c)]
+    -> Interpret (KtFunData (KtFun2 c))
   ktFun2
     name
     (a1Name, a1aType@(KtAnyType a1Type))
@@ -86,7 +89,7 @@ instance Kotlin Interpret where
       =
     Interpret (fun2key name [a1aType, a2aType], fun2)
     where
-      fun2 :: KtFun2
+      fun2 :: (Console c) => (KtFun2 c)
       fun2 = \scope a1@(HiddenIO a1fType _) a2@(HiddenIO a2fType _) ->
         if a1fType @==@ a1Type && a2fType @==@ a2Type
         then
@@ -97,15 +100,15 @@ instance Kotlin Interpret where
             "Incorrect type of some argument in a function "
               ++ "`" ++ name  ++ "`"
 
-  ktReturn :: Interpret KtValue -> Interpret KtCommand
+  ktReturn :: Interpret (KtValue c) -> Interpret (KtCommand c)
   ktReturn = Interpret . KtCommandReturn . interpret
   
-  ktValueCommand :: Interpret KtValue -> Interpret KtCommand
+  ktValueCommand :: (Console c) => Interpret (KtValue c) -> Interpret (KtCommand c)
   ktValueCommand iv = Interpret . KtCommandStep $ \scope ->
     case interpret iv scope of
         HiddenIO _ ioa -> ioa >> return scope
 
-  ktCallFun0 :: Name -> Interpret KtValue
+  ktCallFun0 :: Name -> Interpret (KtValue c)
   ktCallFun0 name = Interpret $ \scope ->
     fromJust
       ("no function " ++ name ++ "()")
@@ -113,7 +116,7 @@ instance Kotlin Interpret where
       scope
 
 
-  ktCallFun1 :: Name -> Interpret KtValue -> Interpret KtValue
+  ktCallFun1 :: Name -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktCallFun1 name ia = Interpret $ \scope ->
     case interpret ia scope of
       ha@(HiddenIO aType _) ->
@@ -122,7 +125,7 @@ instance Kotlin Interpret where
           (sFun1 scope !? fun2key name [KtAnyType aType])
           scope ha
 
-  ktCallFun2 :: Name -> Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktCallFun2 :: Name -> Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktCallFun2 name ia1 ia2 = Interpret $ \scope ->
     case (interpret ia1 scope, interpret ia2 scope) of
       (ha1@(HiddenIO a1Type _), ha2@(HiddenIO a2Type _)) ->
@@ -131,47 +134,47 @@ instance Kotlin Interpret where
           (sFun2 scope !? fun2key name [KtAnyType a1Type, KtAnyType a2Type])
           scope ha1 ha2
 
-  ktAddition :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktAddition ::(Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktAddition = interpretBinOp $ binOpPredator
     { bOnInt    = KtIntType    `to` (+)
     , bOnDouble = KtDoubleType `to` (+)
     , bOnString = KtStringType `to` (++)
     }
 
-  ktDifferent :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktDifferent :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktDifferent = interpretBinOp $ binOpPredator
     { bOnInt    = KtIntType    `to` (-)
     , bOnDouble = KtDoubleType `to` (-)
     }
 
-  ktMultiplication :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktMultiplication :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktMultiplication = interpretBinOp $ binOpPredator
     { bOnInt    = KtIntType    `to` (*)
     , bOnDouble = KtDoubleType `to` (*)
     }
 
-  ktRatio :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktRatio :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktRatio = interpretBinOp $ binOpPredator
     { bOnInt    = KtIntType    `to` div
     , bOnDouble = KtDoubleType `to` (/)
     }
 
-  ktNegate :: Interpret KtValue -> Interpret KtValue
+  ktNegate :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c)
   ktNegate = interpretUnoOp $ unoOpPredator
     { uOnInt    = KtIntType    `to` negate
     , uOnDouble = KtDoubleType `to` negate
     }
 
-  ktAnd :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktAnd :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktAnd = interpretBinOp $ binOpPredator { bOnBool = KtBoolType `to` (&&) }
 
-  ktOr :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktOr :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktOr = interpretBinOp $ binOpPredator { bOnBool = KtBoolType `to` (||) }
 
-  ktNot :: Interpret KtValue -> Interpret KtValue
+  ktNot :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c)
   ktNot = interpretUnoOp $ unoOpPredator { uOnBool = KtBoolType `to` not }
 
-  ktEq :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktEq :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktEq = interpretBinOp $ binOpPredator
     { bCanCast  = False
     , bOnInt    = KtBoolType `to` (==)
@@ -180,7 +183,7 @@ instance Kotlin Interpret where
     , bOnString = KtBoolType `to` (==)
     }
 
-  ktNotEq :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktNotEq :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktNotEq = interpretBinOp $ binOpPredator
     { bCanCast  = False
     , bOnInt    = KtBoolType `to` (/=)
@@ -189,7 +192,7 @@ instance Kotlin Interpret where
     , bOnString = KtBoolType `to` (/=)
     }
 
-  ktGt :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktGt :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktGt = interpretBinOp $ binOpPredator
     { bOnInt    = KtBoolType `to` (>)
     , bOnDouble = KtBoolType `to` (>)
@@ -197,7 +200,7 @@ instance Kotlin Interpret where
     , bOnBool   = KtBoolType `to` (>)
     }
 
-  ktGte :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktGte :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktGte = interpretBinOp $ binOpPredator
     { bOnInt    = KtBoolType `to` (>=)
     , bOnDouble = KtBoolType `to` (>=)
@@ -205,7 +208,7 @@ instance Kotlin Interpret where
     , bOnBool   = KtBoolType `to` (>=)
     }
 
-  ktLt :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktLt :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktLt = interpretBinOp $ binOpPredator
     { bOnInt    = KtBoolType `to` (<)
     , bOnDouble = KtBoolType `to` (<)
@@ -213,7 +216,7 @@ instance Kotlin Interpret where
     , bOnBool   = KtBoolType `to` (<)
     }
 
-  ktLte :: Interpret KtValue -> Interpret KtValue -> Interpret KtValue
+  ktLte :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktLte = interpretBinOp $ binOpPredator
     { bOnInt    = KtBoolType `to` (<=)
     , bOnDouble = KtBoolType `to` (<=)
@@ -221,38 +224,38 @@ instance Kotlin Interpret where
     , bOnBool   = KtBoolType `to` (<=)
     }
 
-  ktInt :: Int -> Interpret KtValue
+  ktInt :: (Console c) => Int -> Interpret (KtValue c)
   ktInt = interpretConstant KtIntType
 
-  ktDouble :: Double -> Interpret KtValue
+  ktDouble :: (Console c) => Double -> Interpret (KtValue c)
   ktDouble = interpretConstant KtDoubleType
 
-  ktString :: String -> Interpret KtValue
+  ktString :: (Console c) => String -> Interpret (KtValue c)
   ktString = interpretConstant KtStringType
 
-  ktBool :: Bool -> Interpret KtValue
+  ktBool :: (Console c) => Bool -> Interpret (KtValue c)
   ktBool = interpretConstant KtBoolType
 
-  ktUnit :: () -> Interpret KtValue
+  ktUnit :: (Console c) => () -> Interpret (KtValue c)
   ktUnit = interpretConstant KtUnitType
 
-printFuns :: Map Name KtFun1
+printFuns :: (Console c) => Map Name (KtFun1 c)
 printFuns = fromList
-  [ "print@i" `to` printFun1 putStr
-  , "print@d" `to` printFun1 putStr
-  , "print@s" `to` printFun1 putStr
-  , "print@u" `to` printFun1 putStr
-  , "print@b" `to` printFun1 putStr
-  
-  , "println@i" `to` printFun1 putStrLn
-  , "println@d" `to` printFun1 putStrLn
-  , "println@s" `to` printFun1 putStrLn
-  , "println@u" `to` printFun1 putStrLn
-  , "println@b" `to` printFun1 putStrLn
+  [ "print@i" `to` printFun1 consolePrint
+  , "print@d" `to` printFun1 consolePrint
+  , "print@s" `to` printFun1 consolePrint
+  , "print@u" `to` printFun1 consolePrint
+  , "print@b" `to` printFun1 consolePrint
+
+  , "println@i" `to` printFun1 consolePrintln
+  , "println@d" `to` printFun1 consolePrintln
+  , "println@s" `to` printFun1 consolePrintln
+  , "println@u" `to` printFun1 consolePrintln
+  , "println@b" `to` printFun1 consolePrintln
   ]
   where
     printFun1
-      :: (String -> IO ()) -> KtScope -> HiddenIO -> HiddenIO
+      :: (Console c) => (String -> c ()) -> KtScope c -> HiddenIO c -> HiddenIO c
     printFun1 sout = \_ (HiddenIO aType iov) ->
       HiddenIO KtUnitType $ iov >>= \v ->
         case aType of
@@ -262,40 +265,40 @@ printFuns = fromList
           KtUnitType   -> sout "kotlin.Unit"
           KtBoolType   -> sout $ if v then "true" else "false"
 
-readFuns :: Map Name KtFun0
+readFuns :: (Console c) => Map Name (KtFun0 c)
 readFuns = fromList
   [ "readLine()!!.toInt@" `to` \_ ->
-      HiddenIO KtIntType $ read @Int <$> getLine
+      HiddenIO KtIntType $ read @Int <$> consoleReadLine
   , "readLine()!!.toDouble@" `to` \_ ->
-      HiddenIO KtDoubleType $ read @Double <$> getLine
+      HiddenIO KtDoubleType $ read @Double <$> consoleReadLine
   , "readLine@" `to` \_ ->
-      HiddenIO KtStringType getLine
+      HiddenIO KtStringType consoleReadLine
   ]
 
-interpretConstant :: (Typeable a) => KtType a -> a -> Interpret KtValue
+interpretConstant :: (Console c, Typeable a) => KtType a -> a -> Interpret (KtValue c)
 interpretConstant aType a = Interpret $ \_ -> HiddenIO aType $ return a
 
-mkFunBody :: (Typeable r) => KtType r -> [Interpret KtCommand] -> KtScope -> HiddenIO
+mkFunBody :: (Console c, Typeable r) => KtType r -> [Interpret (KtCommand c)] -> KtScope c -> HiddenIO c
 mkFunBody rType cmds funScope = HiddenIO rType $ do
   mbResult <- foldCommands funScope rType $ interpret <$> cmds
   case mbResult of
     Nothing -> case rType of
       KtUnitType -> return ()
-      _          -> fail "Missing return"
+      _          -> error "Missing return"
     Just r  -> return r
 
-foldCommands :: Typeable a => KtScope -> KtType a -> [KtCommand] -> IO (Maybe a)
+foldCommands :: (Console c, Typeable a) => (KtScope c) -> KtType a -> [KtCommand c] -> c (Maybe a)
 foldCommands initScope (_ :: KtType a) cmds = foldCommands' initScope cmds Nothing
   where
-    foldCommands' :: KtScope -> [KtCommand] -> Maybe a -> IO (Maybe a)
+    foldCommands' :: (Console c) => KtScope c -> [KtCommand c] -> Maybe a -> c (Maybe a)
     foldCommands' scope [] mbV = return mbV
     foldCommands' scope (cmd:cmds) Nothing =
       case cmd of
         KtCommandReturn underScope ->
           case underScope scope of
-            HiddenIO _ (ioR :: IO r) ->
+            HiddenIO _ (ioR :: c r) ->
               case eqT @a @r of
-                Nothing   -> fail "Incorrect type of return statement"
+                Nothing   -> error "Incorrect type of return statement"
                 Just Refl -> ioR >>= \r -> foldCommands' scope cmds $ Just r
         KtCommandStep ioS ->
           ioS scope >>= \newScope -> foldCommands' newScope cmds Nothing
@@ -305,9 +308,9 @@ foldCommands initScope (_ :: KtType a) cmds = foldCommands' initScope cmds Nothi
       case cmd of
         KtCommandReturn underScope ->
           case underScope scope of
-            HiddenIO _ (_ :: IO r) ->
+            HiddenIO _ (_ :: c r) ->
               case eqT @a @r of
-                Nothing   -> fail "Incorrect type of return statement"
+                Nothing   -> error "Incorrect type of return statement"
                 Just Refl -> foldCommands' scope cmds jV
         KtCommandStep ioS ->
           foldCommands' scope cmds jV
@@ -331,10 +334,10 @@ unoOpPredator = UnoOpPredator
     unoError _ = error "Invalid type of operation argument"
 
 interpretUnoOp
-  :: (Typeable i, Typeable d, Typeable b)
+  :: (Console c, Typeable i, Typeable d, Typeable b)
   => UnoOpPredator i d b
-  -> Interpret KtValue
-  -> Interpret KtValue
+  -> Interpret (KtValue c)
+  -> Interpret (KtValue c)
 interpretUnoOp predator iv =
   Interpret $ \scope ->
     case interpret iv scope of
@@ -343,7 +346,7 @@ interpretUnoOp predator iv =
       (HiddenIO KtBoolType   iov) -> uOnBool   predator `attack` iov
       _                           -> error "Invalid type of operation argument"
   where
-    attack :: (Typeable r) => (KtType r, a -> r) -> IO a -> HiddenIO
+    attack :: (Console c, Typeable r) => (KtType r, a -> r) -> c a -> HiddenIO c
     attack (rType, f) iov = HiddenIO rType $ f <$> iov
 
 data BinOpPredator i d b s u = BinOpPredator
@@ -369,11 +372,11 @@ binOpPredator = BinOpPredator
     binError _ _ = error "Invalid types of operation arguments"
 
 interpretBinOp
-  :: (Typeable i, Typeable d, Typeable b, Typeable s, Typeable u)
+  :: (Console c, Typeable i, Typeable d, Typeable b, Typeable s, Typeable u)
   => BinOpPredator i d b s u
-  -> Interpret KtValue
-  -> Interpret KtValue
-  -> Interpret KtValue
+  -> Interpret (KtValue c)
+  -> Interpret (KtValue c)
+  -> Interpret (KtValue c)
 interpretBinOp predator il ir = Interpret $ \scope ->
   case (interpret il scope, interpret ir scope) of
     (HiddenIO typeL iol, HiddenIO typeR ior) ->
@@ -395,7 +398,7 @@ interpretBinOp predator il ir = Interpret $ \scope ->
 
         _ -> binError
   where
-    attack :: (Typeable r) => (KtType r, a -> b -> r) -> (IO a, IO b) -> HiddenIO
+    attack :: (Console c, Typeable r) => (KtType r, a -> b -> r) -> (c a, c b) -> HiddenIO c
     attack (rType, f) (iol, ior) = HiddenIO rType $ liftM2 f iol ior
 
     binError :: a

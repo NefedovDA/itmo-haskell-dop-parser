@@ -15,60 +15,63 @@ module Parsing.KotlinPsi
 import Data.Typeable ((:~:)(..), eqT, Typeable)
 
 import Kotlin.Dsl
-import Kotlin.Printer (runPrint)
+import Kotlin.Printer (Printer)
 
 data KotlinPsi a where
-  KtPsiFile :: KtDeclarations KotlinPsi -> KotlinPsi KtFile
+  KtPsiFile :: (Console c) => KtDeclarations KotlinPsi c -> KotlinPsi (KtFile c)
 
   KtPsiFun0
-    :: Name
+    :: (Console c)
+    => Name
     -> KtAnyType
-    -> [KotlinPsi KtCommand]
-    -> KotlinPsi (KtFunData KtFun0)
+    -> [KotlinPsi (KtCommand c)]
+    -> KotlinPsi (KtFunData (KtFun0 c))
   KtPsiFun1
-    :: Name
+    :: (Console c)
+    => Name
     -> KtFunArg
     -> KtAnyType
-    -> [KotlinPsi KtCommand]
-    -> KotlinPsi (KtFunData KtFun1)
+    -> [KotlinPsi (KtCommand c)]
+    -> KotlinPsi (KtFunData (KtFun1 c))
   KtPsiFun2
-    :: Name
+    :: (Console c)
+    => Name
     -> KtFunArg
     -> KtFunArg
     -> KtAnyType
-    -> [KotlinPsi KtCommand]
-    -> KotlinPsi (KtFunData KtFun2)
+    -> [KotlinPsi (KtCommand c)]
+    -> KotlinPsi (KtFunData (KtFun2 c))
 
-  KtPsiReturn :: KotlinPsi KtValue -> KotlinPsi KtCommand
-  KtPsiValueCommand :: KotlinPsi KtValue -> KotlinPsi KtCommand
+  KtPsiReturn :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
+  KtPsiValueCommand :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
   
-  KtPsiCallFun0 :: Name -> KotlinPsi KtValue
-  KtPsiCallFun1 :: Name -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiCallFun2 :: Name -> KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiCallFun0 :: (Console c) => Name -> KotlinPsi (KtValue c)
+  KtPsiCallFun1 :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiCallFun2 :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
 
-  KtPsiAddition :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiDifferent :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiMultiplication :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiRatio :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiNegate :: KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiAnd :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiOr :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiNot :: KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiEq :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiNotEq :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiGt :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiGte :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiLt :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
-  KtPsiLte :: KotlinPsi KtValue -> KotlinPsi KtValue -> KotlinPsi KtValue
+  KtPsiAddition :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiDifferent :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiMultiplication :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiRatio :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiNegate :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiAnd :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiOr :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiNot :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiEq :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiNotEq :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiGt :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiGte :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiLt :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiLte :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
 
-  KtPsiInt    :: Int    -> KotlinPsi KtValue
-  KtPsiDouble :: Double -> KotlinPsi KtValue
-  KtPsiString :: String -> KotlinPsi KtValue
-  KtPsiBool   :: Bool   -> KotlinPsi KtValue
-  KtPsiUnit   :: ()     -> KotlinPsi KtValue
+  KtPsiInt :: (Console c) => Int -> KotlinPsi (KtValue c)
+  KtPsiDouble :: (Console c) => Double -> KotlinPsi (KtValue c)
+  KtPsiString :: (Console c) => String -> KotlinPsi (KtValue c)
+  KtPsiBool :: (Console c) => Bool -> KotlinPsi (KtValue c)
+  KtPsiUnit :: (Console c) => () -> KotlinPsi (KtValue c)
 
-instance Eq (KtDeclarations KotlinPsi) where
-  (==) :: KtDeclarations KotlinPsi -> KtDeclarations KotlinPsi -> Bool
+instance Eq (KtDeclarations KotlinPsi c) where
+  (==) :: KtDeclarations KotlinPsi c -> KtDeclarations KotlinPsi c -> Bool
   decL == decR =
     (kdFun0 decL == kdFun0 decR) &&
     (kdFun1 decL == kdFun1 decR) &&
@@ -153,7 +156,7 @@ instance Eq (KotlinPsi a) where
 
 instance Show (KotlinPsi a) where
   show :: KotlinPsi a -> String
-  show = runPrint . transform
+  show = show . transform @Printer
 
 transform :: Kotlin expr => KotlinPsi a -> expr a
 transform a = case a of

@@ -15,6 +15,7 @@ testLexer = testGroup "Test Lexer module"
   , testDigits
   , testStrings
   , testComments
+  , testSpecificFunctions
   ]
 
 checkSingleTokenLexing :: String -> TokenType -> Assertion
@@ -25,12 +26,18 @@ testKeys :: TestTree
 testKeys = testGroup "Test lexing key words"
   [ testCase "Lexing true"   $ checkSingleTokenLexing "true"   KeyTrue
   , testCase "Lexing false"  $ checkSingleTokenLexing "false"  KeyFalse
+
   , testCase "Lexing val"    $ checkSingleTokenLexing "val"    KeyVal
   , testCase "Lexing var"    $ checkSingleTokenLexing "var"    KeyVar
+
   , testCase "Lexing fun"    $ checkSingleTokenLexing "fun"    KeyFun
+
   , testCase "Lexing return" $ checkSingleTokenLexing "return" KeyReturn
+
   , testCase "Lexing for"    $ checkSingleTokenLexing "for"    KeyFor
   , testCase "Lexing in"     $ checkSingleTokenLexing "in"     KeyIn
+
+  , testCase "Lexing if"     $ checkSingleTokenLexing "if"     KeyIf
   , testCase "Lexing else"   $ checkSingleTokenLexing "else"   KeyElse
   ]
 
@@ -47,8 +54,10 @@ testSymbols :: TestTree
 testSymbols = testGroup "Test lexing symbols"
   [ testCase "Lexing '('"  $ checkSingleTokenLexing "("  OCBracket
   , testCase "Lexing ')'"  $ checkSingleTokenLexing ")"  CCBracket
+
   , testCase "Lexing '{'"  $ checkSingleTokenLexing "{"  OBBracket
   , testCase "Lexing '}'"  $ checkSingleTokenLexing "}"  CBBracket
+
   , testCase "Lexing '='"  $ checkSingleTokenLexing "="  Equals
   , testCase "Lexing ':'"  $ checkSingleTokenLexing ":"  Colon
   , testCase "Lexing ';'"  $ checkSingleTokenLexing ";"  IEnd
@@ -62,9 +71,18 @@ testOperations = testGroup "Test lexing operations"
   , testCase "Lexing '-'"   $ checkSingleTokenLexing "-"   Minus
   , testCase "Lexing '*'"   $ checkSingleTokenLexing "*"   Mull
   , testCase "Lexing '/'"   $ checkSingleTokenLexing "/"   Div
+
   , testCase "Lexing '&&'"  $ checkSingleTokenLexing "&&"  And
   , testCase "Lexing '||'"  $ checkSingleTokenLexing "||"  Or
   , testCase "Lexing '!'"   $ checkSingleTokenLexing "!"   Not
+
+  , testCase "Lexing '=='"  $ checkSingleTokenLexing "=="  Eq
+  , testCase "Lexing '!='"  $ checkSingleTokenLexing "!="  NotEq
+
+  , testCase "Lexing '>='"  $ checkSingleTokenLexing ">="  Gte
+  , testCase "Lexing '<='"  $ checkSingleTokenLexing "<="  Lte
+  , testCase "Lexing '>'"   $ checkSingleTokenLexing ">"   Gt
+  , testCase "Lexing '<'"   $ checkSingleTokenLexing "<"   Lt
   ]
 
 testNames :: TestTree
@@ -79,6 +97,7 @@ testDigits = testGroup "Test lexing digits"
   [ testCase "Lexing int '1'"       $ checkSingleTokenLexing "1"    IntNum
   , testCase "Lexing int '12'"      $ checkSingleTokenLexing "12"   IntNum
   , testCase "Lexing int '0'"       $ checkSingleTokenLexing "0"    IntNum
+
   , testCase "Lexing double '1.0'"  $ checkSingleTokenLexing "1.0"  DoubleNum
   , testCase "Lexing double '12.0'" $ checkSingleTokenLexing "12.0" DoubleNum
   , testCase "Lexing double '0.0'"  $ checkSingleTokenLexing "0.0"  DoubleNum
@@ -93,5 +112,14 @@ testStrings = testGroup "Test lexing strings"
 
 testComments :: TestTree
 testComments = testGroup "Test lexing comments"
-  [ testCase "Lexing comment /**/" $ alexScanTokens "/**/" @?= []
+  [ testCase "Lexing comment /**/"        $ alexScanTokens "/**/"        @?= []
+  , testCase "Lexing comment /* 1 + 1 */" $ alexScanTokens "/* 1 + 1 */" @?= []
+  ]
+
+testSpecificFunctions :: TestTree
+testSpecificFunctions = testGroup "Test lexing words"
+  [ testCase "Lexing name 'readLine()!!.toInt'"
+      $ checkSingleTokenLexing "readLine()!!.toInt" Name
+  , testCase "Lexing name 'readLine()!!.toDouble'"
+      $ checkSingleTokenLexing "readLine()!!.toDouble" Name
   ]

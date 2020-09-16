@@ -21,7 +21,7 @@ testParser = testGroup "Test Parser module"
 data TestTemplate = TestTemplate
   { ttName      :: String
   , ttNeedSplit :: Bool
-  , ttPsi       :: KotlinPsi KtFile
+  , ttPsi       :: KotlinPsi (KtFile IO)
   }
 
 testTemplates :: [TestTemplate]
@@ -52,7 +52,7 @@ testTemplates =
             { kdFun0 =
                 [ KtPsiFun0 "f"
                   (KtAnyType KtUnitType)
-                  [ KtPsiReturn . KtPsiWrap $ KtPsiUnit () ]
+                  [ KtPsiReturn $ KtPsiUnit () ]
                 ]
             }
       }
@@ -89,33 +89,33 @@ testTemplates =
             { kdFun0 =
                 [ KtPsiFun0 "check_return_Int"
                     (KtAnyType KtIntType)
-                    [ makeReturn $ KtPsiInt 1 ]
+                    [ KtPsiReturn $ KtPsiInt 1 ]
                 , KtPsiFun0 "check_return_Double"
                     (KtAnyType KtDoubleType)
-                    [ makeReturn $ KtPsiDouble 1.2 ]
+                    [ KtPsiReturn $ KtPsiDouble 1.2 ]
                 , KtPsiFun0 "check_Addition"
                     (KtAnyType KtDoubleType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiInt 1 `KtPsiAddition` KtPsiDouble 1.2
                     ]
                 , KtPsiFun0 "check_Different"
                     (KtAnyType KtDoubleType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiInt 1 `KtPsiDifferent` KtPsiDouble 1.2
                     ]
                 , KtPsiFun0 "check_Multiplication"
                     (KtAnyType KtDoubleType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiInt 1 `KtPsiMultiplication` KtPsiDouble 1.2
                     ]
                 , KtPsiFun0 "check_Ratio"
                     (KtAnyType KtDoubleType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiInt 1 `KtPsiRatio` KtPsiDouble 1.2
                     ]
                 , KtPsiFun0 "check_Negate"
                     (KtAnyType KtIntType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiNegate $ KtPsiInt 1
                     ]
                 ]
@@ -129,48 +129,48 @@ testTemplates =
             { kdFun0 =
                 [ KtPsiFun0 "check_return_True"
                     (KtAnyType KtBoolType)
-                    [ makeReturn $ KtPsiBool True ]
+                    [ KtPsiReturn $ KtPsiBool True ]
                 , KtPsiFun0 "check_return_False"
                     (KtAnyType KtBoolType)
-                    [ makeReturn $ KtPsiBool False ]
+                    [ KtPsiReturn $ KtPsiBool False ]
                 , KtPsiFun0 "check_Or"
                     (KtAnyType KtBoolType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiBool False `KtPsiOr` KtPsiBool True
                     ]
                 , KtPsiFun0 "check_And"
                     (KtAnyType KtBoolType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiBool False `KtPsiOr` KtPsiBool True
                     ]
                 , KtPsiFun0 "check_Not"
                     (KtAnyType KtBoolType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiNot $ KtPsiBool True
                     ]
                 , KtPsiFun0 "check_Eq_numbers"
                     (KtAnyType KtBoolType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiInt 1 `KtPsiEq` KtPsiInt 1
                     ]
                 , KtPsiFun0 "check_Lt_numbers"
                     (KtAnyType KtBoolType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiInt 1 `KtPsiLt` KtPsiInt 1
                     ]
                 , KtPsiFun0 "check_Lte_numbers"
                     (KtAnyType KtBoolType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiInt 1 `KtPsiLte` KtPsiInt 1
                     ]
                 , KtPsiFun0 "check_Gt_numbers"
                     (KtAnyType KtBoolType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiInt 1 `KtPsiGt` KtPsiInt 1
                     ]
                 , KtPsiFun0 "check_Gte_numbers"
                     (KtAnyType KtBoolType)
-                    [ makeReturn $
+                    [ KtPsiReturn $
                         KtPsiInt 1 `KtPsiGte` KtPsiInt 1
                     ]
                 ]
@@ -178,10 +178,7 @@ testTemplates =
       }
   ]
 
-makeReturn :: (Typeable r) => KotlinPsi (KtValue r) -> KotlinPsi (KtCommand)
-makeReturn = KtPsiReturn . KtPsiWrap
-
-emptyDeclarations :: KtDeclarations KotlinPsi
+emptyDeclarations :: KtDeclarations KotlinPsi IO
 emptyDeclarations =
   KtDeclarations
     { kdFun0 = []
@@ -189,7 +186,7 @@ emptyDeclarations =
     , kdFun2 = []
     }
 
-type PsiDecl = KtDeclarations KotlinPsi
+type PsiDecl = KtDeclarations KotlinPsi IO
 type PsiFunData fun = KotlinPsi (KtFunData fun)
 
 runTests :: TestTree
@@ -206,7 +203,7 @@ runTests = testGroup "Test parsing psi" $
         testCase name $
           parseInput (show psi) @?= psi
 
-    splitTree :: KotlinPsi KtFile -> [TestTemplate]
+    splitTree :: KotlinPsi (KtFile IO) -> [TestTemplate]
     splitTree (KtPsiFile declarations) = concat $
       [ splitDeclarations kdFun0 $ \decl f -> decl { kdFun0 = [f] }
       , splitDeclarations kdFun1 $ \decl f -> decl { kdFun1 = [f] }

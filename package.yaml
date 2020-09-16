@@ -54,3 +54,4 @@ tests:
     - parser
     - tasty
     - tasty-hunit
+    - directory

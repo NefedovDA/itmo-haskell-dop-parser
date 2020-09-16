@@ -1,10 +1,10 @@
 import Test.Tasty (testGroup, defaultMain)
 
-import Parsing.LexerTest (testLexer)
-import Parsing.ParserTest (testParser)
+import Kotlin.Spec  (testKotlin)
+import Parsing.Spec (testParsing)
 
 main :: IO ()
 main = defaultMain $ testGroup "All tests" 
-  [ testLexer
-  , testParser
+  [ testKotlin
+  , testParsing
   ]

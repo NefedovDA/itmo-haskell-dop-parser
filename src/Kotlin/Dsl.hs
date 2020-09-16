@@ -2,6 +2,7 @@
 
 module Kotlin.Dsl
   ( Kotlin(..)
+  , Console(..)
   
   , KtDeclarations(..)
   , KtScope(..)
@@ -32,99 +33,108 @@ import Data.Map      (Map)
 import Data.Typeable (Typeable)
 
 class Kotlin expr where
-  ktFile :: KtDeclarations expr -> expr KtFile
+  ktFile :: (Console c) => KtDeclarations expr c -> expr (KtFile c)
 
   ktFun0
-    :: Name
+    :: (Console c)
+    => Name
     -> KtAnyType
-    -> [expr KtCommand]
-    -> expr (KtFunData KtFun0)
+    -> [expr (KtCommand c)]
+    -> expr (KtFunData (KtFun0 c))
 
   ktFun1
-    :: Name
+    :: (Console c)
+    => Name
     -> KtFunArg
     -> KtAnyType
-    -> [expr KtCommand]
-    -> expr (KtFunData KtFun1)
+    -> [expr (KtCommand c)]
+    -> expr (KtFunData (KtFun1 c))
 
   ktFun2
-    :: Name
+    :: (Console c)
+    => Name
     -> KtFunArg
     -> KtFunArg
     -> KtAnyType
-    -> [expr KtCommand]
-    -> expr (KtFunData KtFun2)
+    -> [expr (KtCommand c)]
+    -> expr (KtFunData (KtFun2 c))
 
-  ktReturn :: expr KtValue -> expr KtCommand
+  ktReturn :: (Console c) => expr (KtValue c) -> expr (KtCommand c)
 
-  ktValueCommand :: expr KtValue -> expr KtCommand
+  ktValueCommand :: (Console c) => expr (KtValue c) -> expr (KtCommand c)
 
-  ktCallFun0 :: Name -> expr KtValue
+  ktCallFun0 :: (Console c) => Name -> expr (KtValue c)
 
-  ktCallFun1 :: Name -> expr KtValue -> expr KtValue
+  ktCallFun1 :: (Console c) => Name -> expr (KtValue c) -> expr (KtValue c)
 
-  ktCallFun2 :: Name -> expr KtValue -> expr KtValue -> expr KtValue
+  ktCallFun2 :: (Console c) => Name -> expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktAddition :: expr KtValue -> expr KtValue -> expr KtValue
+  ktAddition :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktDifferent :: expr KtValue -> expr KtValue -> expr KtValue
+  ktDifferent :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktMultiplication :: expr KtValue -> expr KtValue -> expr KtValue
+  ktMultiplication :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktRatio :: expr KtValue -> expr KtValue -> expr KtValue
+  ktRatio :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktNegate :: expr KtValue -> expr KtValue
+  ktNegate :: (Console c) => expr (KtValue c) -> expr (KtValue c)
 
-  ktAnd :: expr KtValue -> expr KtValue -> expr KtValue
+  ktAnd :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktOr :: expr KtValue -> expr KtValue -> expr KtValue
+  ktOr :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktNot :: expr KtValue -> expr KtValue
+  ktNot :: (Console c) => expr (KtValue c) -> expr (KtValue c)
 
-  ktEq :: expr KtValue -> expr KtValue -> expr KtValue
+  ktEq :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktNotEq :: expr KtValue -> expr KtValue -> expr KtValue
+  ktNotEq :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktGt :: expr KtValue -> expr KtValue -> expr KtValue
+  ktGt :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktGte :: expr KtValue -> expr KtValue -> expr KtValue
+  ktGte :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktLt :: expr KtValue -> expr KtValue -> expr KtValue
+  ktLt :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktLte :: expr KtValue -> expr KtValue -> expr KtValue
+  ktLte :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktInt    :: Int -> expr KtValue
+  ktInt :: (Console c) => Int -> expr (KtValue c)
 
-  ktDouble :: Double -> expr KtValue
+  ktDouble :: (Console c) => Double -> expr (KtValue c)
 
-  ktString :: String -> expr KtValue
+  ktString :: (Console c) => String -> expr (KtValue c)
 
-  ktBool   :: Bool -> expr KtValue
+  ktBool :: (Console c) => Bool -> expr (KtValue c)
 
-  ktUnit   :: () -> expr KtValue
+  ktUnit :: (Console c) => () -> expr (KtValue c)
 
-data KtDeclarations expr = KtDeclarations
-  { kdFun0 :: [expr (KtFunData KtFun0)]
-  , kdFun1 :: [expr (KtFunData KtFun1)]
-  , kdFun2 :: [expr (KtFunData KtFun2)]
-  }
-
-data KtScope = KtScope
-  { sFun0 :: Map String KtFun0
-  , sFun1 :: Map String KtFun1
-  , sFun2 :: Map String KtFun2
+class Monad m => Console m where
+  consolePrint    :: String -> m ()
+  consolePrintln  :: String -> m ()
+  consoleReadLine :: m String
   
-  , sValue :: Map String HiddenIO
-  , sVariable :: Map String HiddenIO
+
+data KtDeclarations expr c = KtDeclarations
+  { kdFun0 :: [expr (KtFunData (KtFun0 c))]
+  , kdFun1 :: [expr (KtFunData (KtFun1 c))]
+  , kdFun2 :: [expr (KtFunData (KtFun2 c))]
   }
 
-type KtFile = IO ()
+data KtScope c = KtScope
+  { sFun0 :: Map String (KtFun0 c)
+  , sFun1 :: Map String (KtFun1 c)
+  , sFun2 :: Map String (KtFun2 c)
+  
+  , sValue :: Map String (HiddenIO c)
+  , sVariable :: Map String (HiddenIO c)
+  }
 
-type KtFun0 = KtScope -> HiddenIO
+type KtFile c = c ()
 
-type KtFun1 = KtScope -> HiddenIO -> HiddenIO
+type KtFun0 c = KtScope c -> HiddenIO c
 
-type KtFun2 = KtScope -> HiddenIO -> HiddenIO -> HiddenIO
+type KtFun1 c = KtScope c -> HiddenIO c -> HiddenIO c
+
+type KtFun2 c = KtScope c -> HiddenIO c -> HiddenIO c -> HiddenIO c
 
 type KtFunData fun = (Name, fun)
 
@@ -132,15 +142,15 @@ type Name = String
 
 type KtFunArg = (Name, KtAnyType)
 
-type KtValue = KtScope -> HiddenIO
+type KtValue c = KtScope c -> HiddenIO c
 
-data KtCommand where
-  KtCommandReturn :: KtValue -> KtCommand
-  KtCommandStep   :: (KtScope -> IO KtScope) -> KtCommand
-  KtCommandBlock  :: [KtCommand] -> KtCommand
+data KtCommand c where
+  KtCommandReturn :: KtValue c -> KtCommand c
+  KtCommandStep   :: (KtScope c -> c (KtScope c)) -> KtCommand c
+  KtCommandBlock  :: [KtCommand c] -> KtCommand c
 
-data HiddenIO where
-  HiddenIO :: (Typeable a) => KtType a -> IO a -> HiddenIO
+data HiddenIO c where
+  HiddenIO :: (Typeable a) => KtType a -> c a -> HiddenIO c
 
 data KtType t where
   KtIntType    :: KtType Int
