@@ -118,7 +118,7 @@ instance Kotlin Interpret where
         hv@(HiddenIO vType _)
           | vType @==@ aType -> return $ putVariable isConstant name hv scope
           | otherwise        -> error "Initial value has incorrect type"
-  
+
   ktSetVariable :: (Console c) => Name -> Interpret (KtValue c) -> Interpret (KtCommand c)
   ktSetVariable name iValue = Interpret . KtCommandStep $ \scope -> do
     case findVariable scope name of
@@ -351,34 +351,32 @@ mkFunBody rType cmds funScope = HiddenIO rType $ do
     Just r  -> return r
 
 foldCommands :: (Console c, Typeable a) => (KtScope c) -> KtType a -> [KtCommand c] -> c (Maybe a)
-foldCommands initScope (_ :: KtType a) cmds = foldCommands' initScope cmds Nothing
+foldCommands scope (_ :: KtType a) cmds = checkReturnType scope cmds >> foldCommands' scope cmds
   where
-    foldCommands' :: (Console c) => KtScope c -> [KtCommand c] -> Maybe a -> c (Maybe a)
-    foldCommands' scope [] mbV = return mbV
-    foldCommands' scope (cmd:cmds) Nothing =
+    checkReturnType :: (Console c) => KtScope c -> [KtCommand c] -> c ()
+    checkReturnType scope []         = return ()
+    checkReturnType scope (cmd:cmds) = case cmd of
+      KtCommandStep ioS ->
+        ioS scope >>= \s -> checkReturnType s cmds
+      KtCommandReturn value ->
+        case value scope of
+          HiddenIO (_ :: KtType r) _ ->
+            case eqT @a @r of
+              Nothing -> error "Incorrect type of return statement"
+              Just _  -> checkReturnType scope cmds
+
+    foldCommands' :: (Console c) => KtScope c -> [KtCommand c] -> c (Maybe a)
+    foldCommands' scope [] = return Nothing
+    foldCommands' scope (cmd:cmds) =
       case cmd of
-        KtCommandReturn underScope ->
-          case underScope scope of
-            HiddenIO _ (ioR :: c r) ->
-              case eqT @a @r of
-                Nothing   -> error "Incorrect type of return statement"
-                Just Refl -> ioR >>= \r -> foldCommands' scope cmds $ Just r
         KtCommandStep ioS ->
-          ioS scope >>= \newScope -> foldCommands' newScope cmds Nothing
-        KtCommandBlock blockCmds ->
-          foldCommands' scope blockCmds Nothing >>= \mbR -> foldCommands' scope cmds mbR
-    foldCommands' scope (cmd:cmds) jV@(Just v) =
-      case cmd of
-        KtCommandReturn underScope ->
-          case underScope scope of
-            HiddenIO _ (_ :: c r) ->
+          ioS scope >>= \s -> foldCommands' s cmds
+        KtCommandReturn value ->
+          case value scope of
+            HiddenIO (_ :: KtType r) ioR ->
               case eqT @a @r of
-                Nothing   -> error "Incorrect type of return statement"
-                Just Refl -> foldCommands' scope cmds jV
-        KtCommandStep ioS ->
-          foldCommands' scope cmds jV
-        KtCommandBlock blockCmds ->
-          foldCommands' scope blockCmds jV >> foldCommands' scope cmds jV
+                Just Refl  -> Just <$> ioR
+                Nothing -> error "LOGICK ERROR (foldCommands' run without checking return types)"
 
 data UnoOpPredator i d b = UnoOpPredator
   { uOnInt    :: (KtType i, Int -> i)

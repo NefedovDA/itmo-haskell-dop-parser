@@ -161,7 +161,7 @@ type KtValue c = KtScope c -> HiddenIO c
 data KtCommand c where
   KtCommandReturn :: KtValue c -> KtCommand c
   KtCommandStep   :: (KtScope c -> c (KtScope c)) -> KtCommand c
-  KtCommandBlock  :: [KtCommand c] -> KtCommand c
+  --KtCommandBlock  :: [KtCommand c] -> (KtScope c -> Maybe (KtScope c)) -> KtCommand c
 
 data HiddenIO c where
   HiddenIO :: (Typeable a) => KtType a -> c a -> HiddenIO c
