@@ -102,8 +102,10 @@ CommandList
   |                                               { []      }
 
 Command
-  : Return ';'                                    { $1 }
+  : Return    ';'                                 { $1 }
   | JustValue ';'                                 { $1 }
+  | InitVar   ';'                                 { $1 }
+  | SetVar    ';'                                 { $1 }
 
 Return
   : RETURN                                        { U.defaultReturn   }
@@ -111,6 +113,13 @@ Return
 
 JustValue
   : Value                                         { KT.KtPsiValueCommand $1 }
+
+InitVar
+  : VAL NAME ':' Type '=' Value                   { KT.KtPsiInitVariable True  $2 $4 $6 }
+  | VAR NAME ':' Type '=' Value                   { KT.KtPsiInitVariable False $2 $4 $6 }
+
+SetVar
+  : NAME '=' Value                                { KT.KtPsiSetVariable $1 $3 }
 
 Value
   : Or                                            { $1 }
@@ -154,6 +163,7 @@ Unary
 Target
   : '(' Value ')'                                 { $2 }
   | CallFun                                       { $1 }
+  | ReadVar                                       { $1 }
   | Double                                        { $1 }
   | Int                                           { $1 }
   | String                                        { $1 }
@@ -165,6 +175,9 @@ CallFun
   | NAME '(' ')'                                  { KT.KtPsiCallFun0 $1       }
   | NAME '(' Value ')'                            { KT.KtPsiCallFun1 $1 $3    }
   | NAME '(' Value ',' Value ')'                  { KT.KtPsiCallFun2 $1 $3 $5 }
+
+ReadVar
+  : NAME                                          { KT.KtPsiReadVariable $1 }
 
 Int
   : INT_NUM                                       {% U.checkedInt $1 }

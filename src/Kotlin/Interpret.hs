@@ -28,8 +28,7 @@ instance Kotlin Interpret where
           , sFun1 = foldr iterator printFuns $ kdFun1 declarations
           , sFun2 = foldr iterator empty     $ kdFun2 declarations
 
-          , sValue = empty
-          , sVariable = empty
+          , sVariable = []
           }
     case interpret (ktCallFun0 "main") scope of
       HiddenIO KtUnitType ioMain -> ioMain
@@ -48,7 +47,7 @@ instance Kotlin Interpret where
     Interpret (fun2key name [], fun0)
     where
       fun0 :: (Console c) => (KtFun0 c)
-      fun0 = mkFunBody rType cmds
+      fun0 = mkFunBody rType cmds . newVariableArea
 
   ktFun1
     :: forall c. (Console c)
@@ -65,7 +64,8 @@ instance Kotlin Interpret where
         if afType @==@ aType
         then
           mkFunBody rType cmds $
-            scope { sValue = insert aName a $ sValue scope }
+            putValue aName a   $
+            newVariableArea scope
         else
           error $
             "Incorrect type of argument "
@@ -87,18 +87,48 @@ instance Kotlin Interpret where
     (KtAnyType rType)
     cmds
       =
-    Interpret (fun2key name [a1aType, a2aType], fun2)
+    if a1Name == a2Name
+    then error "The same names of arguments"
+    else Interpret (fun2key name [a1aType, a2aType], fun2)
     where
       fun2 :: (Console c) => (KtFun2 c)
       fun2 = \scope a1@(HiddenIO a1fType _) a2@(HiddenIO a2fType _) ->
         if a1fType @==@ a1Type && a2fType @==@ a2Type
         then
-          mkFunBody rType cmds $ scope
-            { sValue = insert a1Name a1 $ insert a2Name a2 $ sValue scope }
+          mkFunBody rType cmds $
+            putValue a1Name a1 $
+            putValue a2Name a2 $
+            newVariableArea scope
         else
           error $
             "Incorrect type of some argument in a function "
               ++ "`" ++ name  ++ "`"
+
+  ktInitVariable
+    :: (Console c)
+    => Bool
+    -> Name
+    -> KtAnyType
+    -> Interpret (KtValue c)
+    -> Interpret (KtCommand c)
+  ktInitVariable isConstant name (KtAnyType aType) iValue =
+    Interpret . KtCommandStep $ \scope -> do
+      let _ = checkOnTop scope name >> error "Variable name is alrady used"
+      case interpret iValue scope of
+        hv@(HiddenIO vType _)
+          | vType @==@ aType -> return $ putVariable isConstant name hv scope
+          | otherwise        -> error "Initial value has incorrect type"
+  
+  ktSetVariable :: (Console c) => Name -> Interpret (KtValue c) -> Interpret (KtCommand c)
+  ktSetVariable name iValue = Interpret . KtCommandStep $ \scope -> do
+    case findVariable scope name of
+      Nothing -> error $ "No variable with name: " ++ name
+      Just (True, _) -> error $ "Variable `" ++ name ++ "` is immutable"
+      Just (False, HiddenIO aType _) ->
+        case interpret iValue scope of
+          hv@(HiddenIO vType _)
+            | vType @==@ aType -> return $ putVariable False name hv scope
+            | otherwise        -> error "Value has incorrect type"
 
   ktReturn :: Interpret (KtValue c) -> Interpret (KtCommand c)
   ktReturn = Interpret . KtCommandReturn . interpret
@@ -133,6 +163,12 @@ instance Kotlin Interpret where
           ("no function " ++ name ++ "(" ++ show a1Type ++ "," ++ show a2Type ++ ")")
           (sFun2 scope !? fun2key name [KtAnyType a1Type, KtAnyType a2Type])
           scope ha1 ha2
+
+  ktReadVariable :: (Console c) => Name -> Interpret (KtValue c)
+  ktReadVariable name = Interpret $ \scope ->
+    snd $ fromJust
+        ("No variable with name: " ++ name)
+        (findVariable scope name)
 
   ktAddition ::(Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktAddition = interpretBinOp $ binOpPredator
@@ -238,6 +274,33 @@ instance Kotlin Interpret where
 
   ktUnit :: (Console c) => () -> Interpret (KtValue c)
   ktUnit = interpretConstant KtUnitType
+
+newVariableArea :: (Console c) => KtScope c -> KtScope c
+newVariableArea scope = scope { sVariable = empty : sVariable scope }
+
+putVariable :: (Console c) => Bool -> Name -> HiddenIO c -> KtScope c -> KtScope c
+putVariable isConstant name hv scope =
+  case sVariable scope of
+    [] -> error "Scope havn't got varable area"
+    vars:varsTail ->
+      scope { sVariable = (insert name (isConstant, hv) vars) : varsTail }
+
+putValue :: (Console c) => Name -> HiddenIO c -> KtScope c -> KtScope c
+putValue = putVariable True
+
+findVariable :: (Console c) => KtScope c -> Name -> Maybe (KtVariableInfo c)
+findVariable KtScope { sVariable = varsArea } name = processAreas varsArea
+  where
+    processAreas :: [Map String (KtVariableInfo c)] -> Maybe (KtVariableInfo c)
+    processAreas []              = Nothing
+    processAreas (vars:varsTail) =
+      case vars !? name of
+        Just vi -> Just vi
+        Nothing -> processAreas varsTail
+
+checkOnTop :: (Console c) => KtScope c -> Name -> Maybe (KtVariableInfo c)
+checkOnTop KtScope { sVariable = [] }     name = error "Scope havn't got varable area"
+checkOnTop KtScope { sVariable = vars:_ } name = vars !? name
 
 printFuns :: (Console c) => Map Name (KtFun1 c)
 printFuns = fromList

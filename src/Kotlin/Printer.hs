@@ -20,9 +20,11 @@ instance Show (Printer a) where
 instance Kotlin Printer where
   ktFile :: KtDeclarations Printer c -> Printer (KtFile c)
   ktFile fnDecl = Printer $ \offset ->
-    (intercalate "\n" $ flipPrint offset <$> kdFun0 fnDecl) ++
-    (intercalate "\n" $ flipPrint offset <$> kdFun1 fnDecl) ++
-    (intercalate "\n" $ flipPrint offset <$> kdFun2 fnDecl)
+    intercalate "\n" $ concat
+      [ flipPrint offset <$> kdFun0 fnDecl
+      , flipPrint offset <$> kdFun1 fnDecl
+      , flipPrint offset <$> kdFun2 fnDecl
+      ]
 
   ktFun0
     :: Name
@@ -50,6 +52,21 @@ instance Kotlin Printer where
     -> Printer (KtFunData (KtFun2 c))
   ktFun2 name arg1 arg2 rType cmds =
     printKtFun name [arg1, arg2] rType cmds
+
+  ktInitVariable
+    :: Bool
+    -> Name
+    -> KtAnyType
+    -> Printer (KtValue c)
+    -> Printer (KtCommand c)
+  ktInitVariable isConstant name vType value = Printer $ \offset ->
+    getOffset offset ++ (if isConstant then "val" else "var") ++ " "
+      ++ name ++ ": " ++ show vType ++ " = "
+      ++ show value ++ ";"
+  
+  ktSetVariable :: (Console c) => Name -> Printer (KtValue c) -> Printer (KtCommand c)
+  ktSetVariable name value = Printer $ \offset ->
+    getOffset offset ++ name ++ " = " ++ show value ++ ";"
   
   ktReturn :: Printer (KtValue c) -> Printer (KtCommand c)
   ktReturn result = Printer $ \offset ->
@@ -67,6 +84,10 @@ instance Kotlin Printer where
 
   ktCallFun2 :: Name -> Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
   ktCallFun2 name arg1 arg2 = printCallFun name [arg1, arg2]
+  
+  ktReadVariable :: (Console c) => Name -> Printer (KtValue c)
+  ktReadVariable name = Printer $ \offset ->
+    getOffset offset ++ name
 
   ktAddition :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
   ktAddition = printBinOp "+"

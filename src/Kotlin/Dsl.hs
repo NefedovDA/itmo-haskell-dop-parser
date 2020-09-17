@@ -14,6 +14,8 @@ module Kotlin.Dsl
   , KtFun2
   
   , KtFunData
+  
+  , KtVariableInfo
 
   , KtFunArg
   
@@ -58,6 +60,16 @@ class Kotlin expr where
     -> KtAnyType
     -> [expr (KtCommand c)]
     -> expr (KtFunData (KtFun2 c))
+  
+  ktInitVariable
+    :: (Console c)
+    => Bool
+    -> Name
+    -> KtAnyType
+    -> expr (KtValue c)
+    -> expr (KtCommand c)
+  
+  ktSetVariable :: (Console c) => Name -> expr (KtValue c) -> expr (KtCommand c)
 
   ktReturn :: (Console c) => expr (KtValue c) -> expr (KtCommand c)
 
@@ -68,6 +80,8 @@ class Kotlin expr where
   ktCallFun1 :: (Console c) => Name -> expr (KtValue c) -> expr (KtValue c)
 
   ktCallFun2 :: (Console c) => Name -> expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+  
+  ktReadVariable :: (Console c) => Name -> expr (KtValue c)
 
   ktAddition :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
@@ -111,7 +125,6 @@ class Monad m => Console m where
   consolePrint    :: String -> m ()
   consolePrintln  :: String -> m ()
   consoleReadLine :: m String
-  
 
 data KtDeclarations expr c = KtDeclarations
   { kdFun0 :: [expr (KtFunData (KtFun0 c))]
@@ -124,9 +137,10 @@ data KtScope c = KtScope
   , sFun1 :: Map String (KtFun1 c)
   , sFun2 :: Map String (KtFun2 c)
   
-  , sValue :: Map String (HiddenIO c)
-  , sVariable :: Map String (HiddenIO c)
+  , sVariable :: [Map String (KtVariableInfo c)]
   }
+
+type KtVariableInfo c = (Bool, HiddenIO c) 
 
 type KtFile c = c ()
 

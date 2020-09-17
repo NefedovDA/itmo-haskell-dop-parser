@@ -29,14 +29,13 @@ runTests = testGroup "Test interpreting" $
         Nothing  -> Nothing
         Just msg -> Just $
           testCase name $ do
-            file <- openFile testOutputFile WriteMode
-            hPutStr file ""
-            hClose file
-            runInterpret tt
-            file <- openFile testOutputFile ReadMode
+            let path = "./" ++ map (\c -> if c == ' ' then '_' else c) name ++ ".txt"
+            runInterpret tt path
+            file <- openFile path ReadMode
             s <- hGetContents file
             s @?= msg
             hClose file
+            removeFile path
 
-    runInterpret :: TestTemplate -> IO ()
+    runInterpret :: TestTemplate -> String -> IO ()
     runInterpret tt = hioIO . interpret . transform $ ttPsi tt

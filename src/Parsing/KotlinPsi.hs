@@ -41,6 +41,16 @@ data KotlinPsi a where
     -> KtAnyType
     -> [KotlinPsi (KtCommand c)]
     -> KotlinPsi (KtFunData (KtFun2 c))
+  
+  KtPsiInitVariable
+      :: (Console c)
+      => Bool
+      -> Name
+      -> KtAnyType
+      -> KotlinPsi (KtValue c)
+      -> KotlinPsi (KtCommand c)
+    
+  KtPsiSetVariable :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
 
   KtPsiReturn :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
   KtPsiValueCommand :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
@@ -48,6 +58,8 @@ data KotlinPsi a where
   KtPsiCallFun0 :: (Console c) => Name -> KotlinPsi (KtValue c)
   KtPsiCallFun1 :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
   KtPsiCallFun2 :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  
+  KtPsiReadVariable :: (Console c) => Name -> KotlinPsi (KtValue c)
 
   KtPsiAddition :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
   KtPsiDifferent :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
@@ -105,6 +117,17 @@ instance Eq (KotlinPsi a) where
       && (rTypeL == rTypeR)
       && (cmdsL  == cmdsR)
 
+  KtPsiInitVariable isConstantL nameL typeL valueL
+    == KtPsiInitVariable isConstantR nameR typeR valueR =
+    (isConstantL == isConstantR)
+      && (nameL == nameR)
+      && (typeL == typeR)
+      && (valueL == valueL)
+
+  KtPsiSetVariable nameL valueL == KtPsiSetVariable nameR valueR =
+    (nameL == nameR)
+      && (valueL == valueL)
+
   KtPsiReturn valueL == KtPsiReturn valueR = valueL == valueR
   KtPsiValueCommand valueL == KtPsiValueCommand valueR = valueL == valueR
   
@@ -116,6 +139,8 @@ instance Eq (KotlinPsi a) where
     (nameL == nameR)
       && (a1L == a1R)
       && (a2L == a2R)
+
+  KtPsiReadVariable nameL == KtPsiReadVariable nameR = nameL == nameR
 
   KtPsiAddition lvL rvL == KtPsiAddition lvR rvR =
     (lvL == lvR) && (rvL == rvL)
@@ -169,6 +194,9 @@ transform a = case a of
   KtPsiFun0 n t cs     -> ktFun0 n t $ transform <$> cs
   KtPsiFun1 n a t cs   -> ktFun1 n a t $ transform <$> cs
   KtPsiFun2 n a b t cs -> ktFun2 n a b t $ transform <$> cs
+  
+  KtPsiInitVariable ic n t v -> ktInitVariable ic n t $ transform v
+  KtPsiSetVariable n v       -> ktSetVariable n $ transform v
 
   KtPsiReturn r -> ktReturn $ transform r
   KtPsiValueCommand r -> ktValueCommand $ transform r
@@ -176,6 +204,8 @@ transform a = case a of
   KtPsiCallFun0 n -> ktCallFun0 n
   KtPsiCallFun1 n a -> ktCallFun1 n $ transform a
   KtPsiCallFun2 n a1 a2 -> ktCallFun2 n (transform a1) (transform a2)
+
+  KtPsiReadVariable n       -> ktReadVariable n
 
   KtPsiAddition lv rv       -> ktAddition (transform lv) (transform rv)
   KtPsiDifferent lv rv      -> ktDifferent (transform lv) (transform rv)
