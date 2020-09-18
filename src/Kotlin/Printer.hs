@@ -84,6 +84,32 @@ instance Kotlin Printer where
 
   ktCallFun2 :: Name -> Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
   ktCallFun2 name arg1 arg2 = printCallFun name [arg1, arg2]
+
+  ktFor
+    :: Name
+    -> Printer (KtValue c)
+    -> Printer (KtValue c)
+    -> [Printer (KtCommand c)]
+    -> Printer (KtCommand c)
+  ktFor iName from to cmds = Printer $ \offset ->
+    getOffset offset ++ "for (" ++ iName ++ " in " ++ show from ++ ".." ++ show to ++ ") {\n"
+      ++ printCommands (succ offset) cmds
+      ++ getOffset offset ++ "}"
+
+  ktIf
+    :: [(Printer (KtValue c), [Printer (KtCommand c)])]
+    -> [Printer (KtCommand c)]
+    -> Printer (KtCommand c)
+  ktIf branches elseBranch = Printer $ \offset ->
+    getOffset offset ++ concatMap (printBranch offset) branches ++
+    "{\n" ++ printCommands (succ offset) elseBranch ++ getOffset offset ++ "}"
+    where
+      printBranch :: Int -> (Printer (KtValue c), [Printer (KtCommand c)]) -> String
+      printBranch offset (condition, cmds) =
+        "if (" ++ show condition ++ ") {\n"
+          ++ printCommands (succ offset) cmds
+          ++ getOffset offset ++ "}\n"
+          ++ getOffset offset ++ "else "
   
   ktReadVariable :: (Console c) => Name -> Printer (KtValue c)
   ktReadVariable name = Printer $ \offset ->
@@ -170,6 +196,10 @@ flipPrint = flip runPrint
 getOffset :: Int -> String
 getOffset offset = take (offset * 2) $ repeat ' '
 
+printCommands :: Int -> [Printer (KtCommand c)] -> String
+printCommands offset cmds =
+  foldMap (\p -> flipPrint offset p ++ "\n") cmds
+
 printKtFun
   :: Name
   -> [KtFunArg]
@@ -179,8 +209,8 @@ printKtFun
 printKtFun name args rType cmds = Printer $ \offset ->
   getOffset offset ++ "fun " ++ name ++ "(" ++ (intercalate ", " $ showArg <$> args) ++ "): "
     ++ show rType ++ " {\n"
-    ++ foldMap (\p -> flipPrint (succ offset) p ++ "\n") cmds
-    ++ "}\n"
+    ++ printCommands (succ offset) cmds
+    ++ getOffset offset ++ "}\n"
   where
     showArg :: KtFunArg -> String
     showArg (name, aType) = name ++ ": " ++ show aType

@@ -13,6 +13,8 @@ import Kotlin.TestTemplate
 import Parsing.KotlinPsi (transform)
 import Data.Maybe (catMaybes)
 import System.IO (openFile, IOMode(..), hGetContents, hClose, hPutStr)
+import Control.Exception (evaluate)
+import Control.DeepSeq (rnf)
 
 testInterpret :: TestTree
 testInterpret = testGroup "Testing Interpreter module"
@@ -33,9 +35,10 @@ runTests = testGroup "Test interpreting" $
             runInterpret tt path
             file <- openFile path ReadMode
             s <- hGetContents file
-            s @?= msg
+            evaluate (rnf s)
             hClose file
             removeFile path
+            s @?= msg
 
     runInterpret :: TestTemplate -> String -> IO ()
     runInterpret tt = hioIO . interpret . transform $ ttPsi tt

@@ -9,11 +9,12 @@ module Kotlin.Interpret
   ( Interpret(..)
   ) where
 
-import Control.Monad (liftM2)
-import Data.Map      (Map, insert, empty, fromList, (!?))
-import Data.Monoid   (First(..))
-import Data.Typeable (Typeable, (:~:)(..), eqT)
-import GHC.Float     (int2Double)
+import Control.Monad  (liftM2)
+import Data.Bifunctor (first)
+import Data.Map       (Map, insert, empty, fromList, (!?))
+import Data.Monoid    (First(..))
+import Data.Typeable  (Typeable, (:~:)(..), eqT)
+import GHC.Float      (int2Double)
 
 import Kotlin.Dsl
 import Kotlin.Utils
@@ -47,7 +48,7 @@ instance Kotlin Interpret where
     Interpret (fun2key name [], fun0)
     where
       fun0 :: (Console c) => (KtFun0 c)
-      fun0 = mkFunBody rType cmds . newVariableArea
+      fun0 = mkFunBody rType cmds . newVarArea
 
   ktFun1
     :: forall c. (Console c)
@@ -65,7 +66,7 @@ instance Kotlin Interpret where
         then
           mkFunBody rType cmds $
             putValue aName a   $
-            newVariableArea scope
+            newVarArea scope
         else
           error $
             "Incorrect type of argument "
@@ -98,7 +99,7 @@ instance Kotlin Interpret where
           mkFunBody rType cmds $
             putValue a1Name a1 $
             putValue a2Name a2 $
-            newVariableArea scope
+            newVarArea scope
         else
           error $
             "Incorrect type of some argument in a function "
@@ -111,8 +112,8 @@ instance Kotlin Interpret where
     -> KtAnyType
     -> Interpret (KtValue c)
     -> Interpret (KtCommand c)
-  ktInitVariable isConstant name (KtAnyType aType) iValue =
-    Interpret . KtCommandStep $ \scope -> do
+  ktInitVariable isConstant name aaType@(KtAnyType aType) iValue =
+    Interpret . KtCmdStep $ \scope -> do
       let _ = checkOnTop scope name >> error "Variable name is alrady used"
       case interpret iValue scope of
         hv@(HiddenIO vType _)
@@ -120,7 +121,7 @@ instance Kotlin Interpret where
           | otherwise        -> error "Initial value has incorrect type"
 
   ktSetVariable :: (Console c) => Name -> Interpret (KtValue c) -> Interpret (KtCommand c)
-  ktSetVariable name iValue = Interpret . KtCommandStep $ \scope -> do
+  ktSetVariable name iValue = Interpret . KtCmdStep $ \scope -> do
     case findVariable scope name of
       Nothing -> error $ "No variable with name: " ++ name
       Just (True, _) -> error $ "Variable `" ++ name ++ "` is immutable"
@@ -131,10 +132,10 @@ instance Kotlin Interpret where
             | otherwise        -> error "Value has incorrect type"
 
   ktReturn :: Interpret (KtValue c) -> Interpret (KtCommand c)
-  ktReturn = Interpret . KtCommandReturn . interpret
+  ktReturn = Interpret . KtCmdReturn . interpret
   
   ktValueCommand :: (Console c) => Interpret (KtValue c) -> Interpret (KtCommand c)
-  ktValueCommand iv = Interpret . KtCommandStep $ \scope ->
+  ktValueCommand iv = Interpret . KtCmdStep $ \scope ->
     case interpret iv scope of
         HiddenIO _ ioa -> ioa >> return scope
 
@@ -170,7 +171,41 @@ instance Kotlin Interpret where
         ("No variable with name: " ++ name)
         (findVariable scope name)
 
-  ktAddition ::(Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  ktFor
+      :: (Console c)
+      => Name
+      -> Interpret (KtValue c)
+      -> Interpret (KtValue c)
+      -> [Interpret (KtCommand c)]
+      -> Interpret (KtCommand c)
+  ktFor name iFrom iTo iCmds =
+    Interpret $ KtCmdFor name (interpret <$> iCmds) $ \scope ->
+      case (interpret iFrom scope, interpret iTo scope) of
+        (HiddenIO KtIntType iFrom, HiddenIO KtIntType iTo) -> do
+          from <- iFrom
+          to   <- iTo
+          return (from, to)
+        _ -> error "`for` range should has boundaries of type Int"
+
+  ktIf
+    :: (Console c)
+    => [(Interpret (KtValue c), [Interpret (KtCommand c)])]
+    -> [Interpret (KtCommand c)]
+    -> Interpret (KtCommand c)
+  ktIf branches elseBranch = Interpret . KtCmdIf $
+    map unwrapBranch branches ++ [(\_ -> return True, interpret <$> elseBranch)]
+    where
+      unwrapBranch
+        :: (Console c)
+        => (Interpret (KtValue c), [Interpret (KtCommand c)])
+        -> (KtScope c -> c Bool, [KtCommand c])
+      unwrapBranch (iCondition, iCmds) =
+        flip to (interpret <$> iCmds) $ \scope ->
+          case interpret iCondition scope of
+            HiddenIO KtBoolType ioCondition -> ioCondition
+            _ -> error "Condition should have type Bool"
+
+  ktAddition :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
   ktAddition = interpretBinOp $ binOpPredator
     { bOnInt    = KtIntType    `to` (+)
     , bOnDouble = KtDoubleType `to` (+)
@@ -275,8 +310,14 @@ instance Kotlin Interpret where
   ktUnit :: (Console c) => () -> Interpret (KtValue c)
   ktUnit = interpretConstant KtUnitType
 
-newVariableArea :: (Console c) => KtScope c -> KtScope c
-newVariableArea scope = scope { sVariable = empty : sVariable scope }
+newVarArea :: (Console c) => KtScope c -> KtScope c
+newVarArea scope = scope { sVariable = empty : sVariable scope }
+
+popVarArea :: (Console c) => KtScope c -> KtScope c
+popVarArea scope@(KtScope { sVariable = [] }) =
+  error "LOGIC ERROR (Try remove from empty variable area)"
+popVarArea scope@(KtScope { sVariable = _:vars }) =
+  scope { sVariable = vars }
 
 putVariable :: (Console c) => Bool -> Name -> HiddenIO c -> KtScope c -> KtScope c
 putVariable isConstant name hv scope =
@@ -351,32 +392,52 @@ mkFunBody rType cmds funScope = HiddenIO rType $ do
     Just r  -> return r
 
 foldCommands :: (Console c, Typeable a) => (KtScope c) -> KtType a -> [KtCommand c] -> c (Maybe a)
-foldCommands scope (_ :: KtType a) cmds = checkReturnType scope cmds >> foldCommands' scope cmds
+foldCommands scope (_ :: KtType a) cmds = snd <$> foldCommands' scope cmds
   where
-    checkReturnType :: (Console c) => KtScope c -> [KtCommand c] -> c ()
-    checkReturnType scope []         = return ()
-    checkReturnType scope (cmd:cmds) = case cmd of
-      KtCommandStep ioS ->
-        ioS scope >>= \s -> checkReturnType s cmds
-      KtCommandReturn value ->
-        case value scope of
-          HiddenIO (_ :: KtType r) _ ->
-            case eqT @a @r of
-              Nothing -> error "Incorrect type of return statement"
-              Just _  -> checkReturnType scope cmds
-
-    foldCommands' :: (Console c) => KtScope c -> [KtCommand c] -> c (Maybe a)
-    foldCommands' scope [] = return Nothing
+    foldCommands' :: (Console c) => KtScope c -> [KtCommand c] -> c (KtScope c, Maybe a)
+    foldCommands' scope []         = return (scope, Nothing)
     foldCommands' scope (cmd:cmds) =
       case cmd of
-        KtCommandStep ioS ->
-          ioS scope >>= \s -> foldCommands' s cmds
-        KtCommandReturn value ->
+        KtCmdStep ioS -> do
+          s <- ioS scope
+          foldCommands' s cmds
+        KtCmdReturn value ->
           case value scope of
             HiddenIO (_ :: KtType r) ioR ->
               case eqT @a @r of
-                Just Refl  -> Just <$> ioR
-                Nothing -> error "LOGICK ERROR (foldCommands' run without checking return types)"
+                Just Refl -> flip fmap ioR $ \r -> (scope, Just r)
+                Nothing   -> error "LOGIC ERROR (foldCommands' run without checking return types)"
+        KtCmdFor iName forCmds getRange -> do
+          (from, to) <- getRange scope
+          foldFor iName scope forCmds from to >>= \case
+            (s, Nothing) -> foldCommands' s cmds
+            (s, r)       -> return (s, r)
+        KtCmdIf branches
+          | length branches < 2 -> error "LOGIC ERROR (if command has less then 2 branches)"
+          | otherwise           -> foldIf scope branches >>= \case
+            (s, Nothing) -> foldCommands' s cmds
+            (s, r)       -> return (s, r)
+
+    foldFor
+      :: (Console c)
+      => Name -> KtScope c -> [KtCommand c] -> Int -> Int -> c (KtScope c, Maybe a)
+    foldFor iName scope cmds from to
+      | from > to = return (scope, Nothing)
+      | otherwise = do
+        let forS = putVariable False iName (HiddenIO KtIntType $ return from)
+                     $ newVarArea scope
+        foldCommands' forS cmds >>= \case
+          (s, Nothing) -> foldFor iName (popVarArea s) cmds (succ from) to
+          (s, r)       -> return (popVarArea s, r)
+
+    foldIf
+      :: (Console c)
+      => KtScope c -> [(KtScope c -> c Bool, [KtCommand c])] -> c (KtScope c, Maybe a)
+    foldIf scope [] = return (scope, Nothing)
+    foldIf scope ((condition, cmds):branches) =
+      condition scope >>= \case
+        False -> foldIf scope branches
+        True  -> first popVarArea <$> foldCommands' (newVarArea scope) cmds
 
 data UnoOpPredator i d b = UnoOpPredator
   { uOnInt    :: (KtType i, Int -> i)

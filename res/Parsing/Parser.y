@@ -106,6 +106,8 @@ Command
   | JustValue ';'                                 { $1 }
   | InitVar   ';'                                 { $1 }
   | SetVar    ';'                                 { $1 }
+  | For                                           { $1 }
+  | If                                            { $1 }
 
 Return
   : RETURN                                        { U.defaultReturn   }
@@ -120,6 +122,17 @@ InitVar
 
 SetVar
   : NAME '=' Value                                { KT.KtPsiSetVariable $1 $3 }
+
+For
+  : FOR '(' NAME IN Value '..' Value ')' '{' CommandList '}'    { KT.KtPsiFor $3 $5 $7 $10 }
+
+If
+  : IfBranch ELSE If                              { U.addBranch $1  $3 }
+  | IfBranch ELSE '{' CommandList '}'             { KT.KtPsiIf [$1] $4 }
+  | IfBranch                                      { KT.KtPsiIf [$1] [] }
+
+IfBranch
+  : IF '(' Value ')' '{' CommandList '}'          { ($3, $6) }
 
 Value
   : Or                                            { $1 }

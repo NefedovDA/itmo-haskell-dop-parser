@@ -8,11 +8,13 @@ module Kotlin.TestTemplate
   , testTemplates
   ) where
 
-import Parsing.KotlinPsi
-import Kotlin.Interpret (interpret)
 import System.IO (hFlush, stdout, IOMode(..), openFile, hPutStrLn, hPutStr, hGetLine, hClose)
 import Foreign.Marshal.Unsafe (unsafeLocalState)
 import Control.Exception (evaluate)
+
+import Parsing.KotlinPsi
+import Kotlin.Interpret (interpret)
+import Kotlin.Utils (to)
 
 testInputFile :: String
 testInputFile = "./test-tmp-input.txt"
@@ -279,9 +281,56 @@ testTemplates =
           "3"           ++!
           ""
       }
+  , TestTemplate
+      { ttName = "For & If"
+      , ttPsi = KtPsiFile $
+          emptyDeclarations
+            { kdFun0 =
+                [ mainPsi
+                    [ KtPsiFor "i" (KtPsiInt 1) (KtPsiInt 10)
+                        [ printPsi (KtPsiReadVariable "i")
+                        , printPsi (KtPsiString " is ")
+                        , KtPsiIf
+                            [ ( KtPsiReadVariable "i" `KtPsiRatio`
+                                KtPsiInt 2 `KtPsiMultiplication`
+                                KtPsiInt 2 `KtPsiEq`
+                                KtPsiReadVariable "i"
+                              , [ printlnPsi (KtPsiString "even") ]
+                              )
+                            ]
+                            [ printlnPsi (KtPsiString "odd") ]
+                        ]
+                    ]
+                ]
+            }
+      , ttPrinted =
+          "fun main(): Unit {"              ++!
+          "  for (i in 1..10) {"            ++!
+          "    print(i);"                   ++!
+          "    print(\" is \");"            ++!
+          "    if ((((i / 2) * 2) == i)) {" ++!
+          "      println(\"even\");"        ++!
+          "    }"                           ++!
+          "    else {"                      ++!
+          "      println(\"odd\");"         ++!
+          "    }"                           ++!
+          "  }"                             ++!
+          "}"                               ++!
+          ""
+      , ttInterpreted = Just $
+          "1 is odd"   ++!
+          "2 is even"  ++!
+          "3 is odd"   ++!
+          "4 is even"  ++!
+          "5 is odd"   ++!
+          "6 is even"  ++!
+          "7 is odd"   ++!
+          "8 is even"  ++!
+          "9 is odd"   ++!
+          "10 is even" ++!
+          ""
+      }
   ]
-
-v = 1 + 1
 
 valPsi :: (Console c) => Name -> KtAnyType -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
 valPsi = KtPsiInitVariable True

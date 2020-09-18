@@ -12,6 +12,7 @@ module Parsing.KotlinPsi
   , transform
   ) where
 
+import Data.Bifunctor (first, second)
 import Data.Typeable ((:~:)(..), eqT, Typeable)
 
 import Kotlin.Dsl
@@ -60,6 +61,20 @@ data KotlinPsi a where
   KtPsiCallFun2 :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
   
   KtPsiReadVariable :: (Console c) => Name -> KotlinPsi (KtValue c)
+  
+  KtPsiFor
+      :: (Console c)
+      => Name
+      -> KotlinPsi (KtValue c)
+      -> KotlinPsi (KtValue c)
+      -> [KotlinPsi (KtCommand c)]
+      -> KotlinPsi (KtCommand c)
+
+  KtPsiIf
+    :: (Console c)
+    => [(KotlinPsi (KtValue c), [KotlinPsi (KtCommand c)])]
+    -> [KotlinPsi (KtCommand c)]
+    -> KotlinPsi (KtCommand c)
 
   KtPsiAddition :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
   KtPsiDifferent :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
@@ -141,6 +156,16 @@ instance Eq (KotlinPsi a) where
       && (a2L == a2R)
 
   KtPsiReadVariable nameL == KtPsiReadVariable nameR = nameL == nameR
+  
+  KtPsiFor nameL fromL toL cmdsL == KtPsiFor nameR fromR toR cmdsR =
+    (nameL == nameR)
+      && (fromL == fromR)
+      && (toL == toR)
+      && (cmdsR == cmdsR)
+  
+  KtPsiIf branchesL elseBranchL == KtPsiIf branchesR elseBranchR =
+    (branchesL == branchesR)
+      && (branchesL == branchesR)
 
   KtPsiAddition lvL rvL == KtPsiAddition lvR rvR =
     (lvL == lvR) && (rvL == rvL)
@@ -205,7 +230,11 @@ transform a = case a of
   KtPsiCallFun1 n a -> ktCallFun1 n $ transform a
   KtPsiCallFun2 n a1 a2 -> ktCallFun2 n (transform a1) (transform a2)
 
-  KtPsiReadVariable n       -> ktReadVariable n
+  KtPsiReadVariable n  -> ktReadVariable n
+  
+  KtPsiFor n f t cs -> ktFor n (transform f) (transform t) (transform <$> cs)
+  
+  KtPsiIf bs eb -> ktIf (first transform . second (transform <$>) <$> bs) (transform <$> eb)
 
   KtPsiAddition lv rv       -> ktAddition (transform lv) (transform rv)
   KtPsiDifferent lv rv      -> ktDifferent (transform lv) (transform rv)

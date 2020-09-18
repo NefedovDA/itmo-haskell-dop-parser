@@ -7,7 +7,7 @@ module Parsing.ParseInput
   ) where
 
 import Kotlin.Dsl         (Kotlin, KtFile)
-import Kotlin.Interpret (interpret)
+import Kotlin.Interpret   (interpret)
 import Kotlin.Printer     (Printer)
 import Parsing.KotlinPsi  (KotlinPsi, transform)
 import Parsing.Lexer      (alexScanTokens)

@@ -14,7 +14,7 @@ module Kotlin.Dsl
   , KtFun2
   
   , KtFunData
-  
+
   , KtVariableInfo
 
   , KtFunArg
@@ -60,7 +60,7 @@ class Kotlin expr where
     -> KtAnyType
     -> [expr (KtCommand c)]
     -> expr (KtFunData (KtFun2 c))
-  
+
   ktInitVariable
     :: (Console c)
     => Bool
@@ -68,7 +68,7 @@ class Kotlin expr where
     -> KtAnyType
     -> expr (KtValue c)
     -> expr (KtCommand c)
-  
+
   ktSetVariable :: (Console c) => Name -> expr (KtValue c) -> expr (KtCommand c)
 
   ktReturn :: (Console c) => expr (KtValue c) -> expr (KtCommand c)
@@ -80,8 +80,22 @@ class Kotlin expr where
   ktCallFun1 :: (Console c) => Name -> expr (KtValue c) -> expr (KtValue c)
 
   ktCallFun2 :: (Console c) => Name -> expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
-  
+
   ktReadVariable :: (Console c) => Name -> expr (KtValue c)
+
+  ktFor
+    :: (Console c)
+    => Name
+    -> expr (KtValue c)
+    -> expr (KtValue c)
+    -> [expr (KtCommand c)]
+    -> expr (KtCommand c)
+
+  ktIf
+    :: (Console c)
+    => [(expr (KtValue c), [expr (KtCommand c)])]
+    -> [expr (KtCommand c)]
+    -> expr (KtCommand c)
 
   ktAddition :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
@@ -140,7 +154,7 @@ data KtScope c = KtScope
   , sVariable :: [Map String (KtVariableInfo c)]
   }
 
-type KtVariableInfo c = (Bool, HiddenIO c) 
+type KtVariableInfo c = (Bool, HiddenIO c)
 
 type KtFile c = c ()
 
@@ -159,9 +173,20 @@ type KtFunArg = (Name, KtAnyType)
 type KtValue c = KtScope c -> HiddenIO c
 
 data KtCommand c where
-  KtCommandReturn :: KtValue c -> KtCommand c
-  KtCommandStep   :: (KtScope c -> c (KtScope c)) -> KtCommand c
-  --KtCommandBlock  :: [KtCommand c] -> (KtScope c -> Maybe (KtScope c)) -> KtCommand c
+  KtCmdReturn
+    :: KtValue c
+    -> KtCommand c
+  KtCmdStep
+    :: (KtScope c -> c (KtScope c))
+    -> KtCommand c
+  KtCmdFor
+    :: Name
+    -> [KtCommand c]
+    -> (KtScope c -> c (Int, Int))
+    -> KtCommand c
+  KtCmdIf
+    :: [(KtScope c -> c Bool, [KtCommand c])]
+    -> KtCommand c
 
 data HiddenIO c where
   HiddenIO :: (Typeable a) => KtType a -> c a -> HiddenIO c

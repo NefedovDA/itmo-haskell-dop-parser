@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs            #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Parsing.Utils
   ( emptyProxyFunDec
@@ -8,7 +9,9 @@ module Parsing.Utils
   , putFun1Data
   , putFun2Data
   , unproxyFunDec
-  
+
+  , addBranch
+
   , checkedInt
   , checkedDouble
   , updatedString
@@ -74,6 +77,14 @@ putFun2Data f@(KtPsiFun2 name (_, a1Type) (_, a2Type) _ _) =
 
 unproxyFunDec :: ProxyFunDec -> KtDeclarations KotlinPsi IO
 unproxyFunDec = pfdDeclarations
+
+addBranch
+  :: (KotlinPsi (KtValue c), [KotlinPsi (KtCommand c)])
+  -> KotlinPsi (KtCommand c)
+  -> KotlinPsi (KtCommand c)
+addBranch branch = \case
+  KtPsiIf branches elseBranch -> KtPsiIf (branch : branches) elseBranch
+  _ -> error "LOGIC ERROR (addBranch cannot be call not on KtPsiIf)"
 
 checkedInt :: String -> Result (KotlinPsi (KtValue IO))
 checkedInt str = case readMaybe @Int str of
