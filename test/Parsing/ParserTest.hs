@@ -83,13 +83,13 @@ testTemplates =
           , testUnit "return Double" $
               KtPsiDouble 1.2
           , testUnit "check Addition" $
-              KtPsiInt 1 `KtPsiAddition` KtPsiDouble 1.2
+              KtPsiInt 1 :+: KtPsiDouble 1.2
           , testUnit "check Different" $
-              KtPsiInt 1 `KtPsiDifferent` KtPsiDouble 1.2
+              KtPsiInt 1 :-: KtPsiDouble 1.2
           , testUnit "check Multiplication" $
-              KtPsiInt 1 `KtPsiMultiplication` KtPsiDouble 1.2
+              KtPsiInt 1 :*: KtPsiDouble 1.2
           , testUnit "check Ratio" $
-              KtPsiInt 1 `KtPsiRatio` KtPsiDouble 1.2
+              KtPsiInt 1 :/: KtPsiDouble 1.2
           , testUnit "check Negate" $
               KtPsiNegate $ KtPsiInt 1
           ]
@@ -103,21 +103,21 @@ testTemplates =
           , testUnit "return False" $
               KtPsiBool False
           , testUnit "check Or" $
-              KtPsiBool False `KtPsiOr` KtPsiBool True
+              KtPsiBool False :||: KtPsiBool True
           , testUnit "check And" $
-              KtPsiBool False `KtPsiOr` KtPsiBool True
+              KtPsiBool False :&&: KtPsiBool True
           , testUnit "check Not" $
               KtPsiNot $ KtPsiBool True
           , testUnit "check Eq numbers" $
-              KtPsiInt 1 `KtPsiEq` KtPsiInt 1
+              KtPsiInt 1 :==: KtPsiInt 1
           , testUnit "check Lt numbers" $
-              KtPsiInt 1 `KtPsiLt` KtPsiInt 1
+              KtPsiInt 1 :<: KtPsiInt 1
           , testUnit "check Lte numbers" $
-              KtPsiInt 1 `KtPsiLte` KtPsiInt 1
+              KtPsiInt 1 :<=: KtPsiInt 1
           , testUnit "check Gt numbers" $
-              KtPsiInt 1 `KtPsiGt` KtPsiInt 1
+              KtPsiInt 1 :>: KtPsiInt 1
           , testUnit "check Gte numbers" $
-              KtPsiInt 1 `KtPsiGte` KtPsiInt 1
+              KtPsiInt 1 :>=: KtPsiInt 1
           ]
       }
   ]

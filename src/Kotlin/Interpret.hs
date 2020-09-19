@@ -57,7 +57,7 @@ instance Kotlin Interpret where
         argsValue <- evalArgs args  -- Support non-lazy behavior
         let scope = putArgs argsInfo argsValue initScope
         foldCommands scope rType $ interpret <$> cmds
-      
+
       evalArgs :: (Console c) => [HiddenIO c] -> c [HiddenIO c]
       evalArgs [] = return []
       evalArgs ((HiddenIO aType ioV):args) = do
@@ -81,7 +81,7 @@ instance Kotlin Interpret where
           go :: (Console c) => [KtFunArg] -> [HiddenIO c] -> KtScope c -> KtScope c
           go [] [] scope = scope
           go ((aName, KtAnyType aType):is) (hv@(HiddenIO vType _):vs) scope
-            | aType @==@ vType =
+            | typeId aType == typeId vType =
                 go is vs $ putValue aName hv scope
             | otherwise =
                 logicError $ withDiff  -- Should be checked on call, before interpret
@@ -104,8 +104,8 @@ instance Kotlin Interpret where
       let _ = checkOnTop scope name >> error "Variable name is alrady used"
       case interpret iValue scope of
         hv@(HiddenIO vType _)
-          | vType @==@ aType -> return $ putVariable isConstant name hv scope
-          | otherwise        -> error "Initial value has incorrect type"
+          | typeId vType == typeId aType -> return $ putVariable isConstant name hv scope
+          | otherwise                    -> error "Initial value has incorrect type"
 
   ktSetVariable :: (Console c) => Name -> Interpret (KtValue c) -> Interpret (KtCommand c)
   ktSetVariable name iValue = Interpret . KtCmdStep $ \scope -> do
@@ -115,7 +115,7 @@ instance Kotlin Interpret where
       Just (False, HiddenIO aType _) ->
         case interpret iValue scope of
           hv@(HiddenIO vType _)
-            | vType @==@ aType -> return $ putVariable False name hv scope
+            | typeId vType == typeId aType -> return $ putVariable False name hv scope
             | otherwise        -> error "Value has incorrect type"
 
   ktReturn :: Interpret (KtValue c) -> Interpret (KtCommand c)
@@ -132,7 +132,7 @@ instance Kotlin Interpret where
     let (aTypes, hValues) =
           unzip $ iArgs
             <&> flip interpret scope
-            <&> \hv@(HiddenIO aType iov) -> (KtAnyType aType, hv) 
+            <&> \hv@(HiddenIO aType iov) -> (KtAnyType aType, hv)
      in case sFun scope !? (name, aTypes) of
           Just fun -> fun scope hValues
           Nothing  ->
@@ -179,48 +179,74 @@ instance Kotlin Interpret where
             HiddenIO KtBoolType ioCondition -> ioCondition
             _ -> error "Condition should have type Bool"
 
-  ktAddition :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktAddition = interpretBinOp $ binOpPredator
-    { bOnInt    = KtIntType    `to` (+)
-    , bOnDouble = KtDoubleType `to` (+)
-    , bOnString = KtStringType `to` (++)
-    }
-
-  ktDifferent :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktDifferent = interpretBinOp $ binOpPredator
-    { bOnInt    = KtIntType    `to` (-)
-    , bOnDouble = KtDoubleType `to` (-)
-    }
-
-  ktMultiplication :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktMultiplication = interpretBinOp $ binOpPredator
-    { bOnInt    = KtIntType    `to` (*)
-    , bOnDouble = KtDoubleType `to` (*)
-    }
-
-  ktRatio :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktRatio = interpretBinOp $ binOpPredator
-    { bOnInt    = KtIntType    `to` div
-    , bOnDouble = KtDoubleType `to` (/)
-    }
-
   ktNegate :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c)
   ktNegate = interpretUnoOp $ unoOpPredator
     { uOnInt    = KtIntType    `to` negate
     , uOnDouble = KtDoubleType `to` negate
     }
 
-  ktAnd :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktAnd = interpretBinOp $ binOpPredator { bOnBool = KtBoolType `to` (&&) }
-
-  ktOr :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktOr = interpretBinOp $ binOpPredator { bOnBool = KtBoolType `to` (||) }
-
   ktNot :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c)
   ktNot = interpretUnoOp $ unoOpPredator { uOnBool = KtBoolType `to` not }
 
-  ktEq :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktEq = interpretBinOp $ binOpPredator
+  (@*@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@*@) = interpretBinOp $ binOpPredator
+    { bOnInt    = KtIntType    `to` (*)
+    , bOnDouble = KtDoubleType `to` (*)
+    }
+
+  (@/@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@/@) = interpretBinOp $ binOpPredator
+    { bOnInt    = KtIntType    `to` div
+    , bOnDouble = KtDoubleType `to` (/)
+    }
+
+  (@+@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@+@) = interpretBinOp $ binOpPredator
+    { bOnInt    = KtIntType    `to` (+)
+    , bOnDouble = KtDoubleType `to` (+)
+    , bOnString = KtStringType `to` (++)
+    }
+
+  (@-@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@-@) = interpretBinOp $ binOpPredator
+    { bOnInt    = KtIntType    `to` (-)
+    , bOnDouble = KtDoubleType `to` (-)
+    }
+
+  (@>@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@>@) = interpretBinOp $ binOpPredator
+    { bOnInt    = KtBoolType `to` (>)
+    , bOnDouble = KtBoolType `to` (>)
+    , bOnString = KtBoolType `to` (>)
+    , bOnBool   = KtBoolType `to` (>)
+    }
+
+  (@>=@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@>=@) = interpretBinOp $ binOpPredator
+    { bOnInt    = KtBoolType `to` (>=)
+    , bOnDouble = KtBoolType `to` (>=)
+    , bOnString = KtBoolType `to` (>=)
+    , bOnBool   = KtBoolType `to` (>=)
+    }
+
+  (@<@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@<@) = interpretBinOp $ binOpPredator
+    { bOnInt    = KtBoolType `to` (<)
+    , bOnDouble = KtBoolType `to` (<)
+    , bOnString = KtBoolType `to` (<)
+    , bOnBool   = KtBoolType `to` (<)
+    }
+
+  (@<=@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@<=@) = interpretBinOp $ binOpPredator
+    { bOnInt    = KtBoolType `to` (<=)
+    , bOnDouble = KtBoolType `to` (<=)
+    , bOnString = KtBoolType `to` (<=)
+    , bOnBool   = KtBoolType `to` (<=)
+    }
+
+  (@==@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@==@) = interpretBinOp $ binOpPredator
     { bCanCast  = False
     , bOnInt    = KtBoolType `to` (==)
     , bOnDouble = KtBoolType `to` (==)
@@ -228,8 +254,8 @@ instance Kotlin Interpret where
     , bOnString = KtBoolType `to` (==)
     }
 
-  ktNotEq :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktNotEq = interpretBinOp $ binOpPredator
+  (@!=@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@!=@) = interpretBinOp $ binOpPredator
     { bCanCast  = False
     , bOnInt    = KtBoolType `to` (/=)
     , bOnDouble = KtBoolType `to` (/=)
@@ -237,37 +263,11 @@ instance Kotlin Interpret where
     , bOnString = KtBoolType `to` (/=)
     }
 
-  ktGt :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktGt = interpretBinOp $ binOpPredator
-    { bOnInt    = KtBoolType `to` (>)
-    , bOnDouble = KtBoolType `to` (>)
-    , bOnString = KtBoolType `to` (>)
-    , bOnBool   = KtBoolType `to` (>)
-    }
+  (@&&@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@&&@) = interpretBinOp $ binOpPredator { bOnBool = KtBoolType `to` (&&) }
 
-  ktGte :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktGte = interpretBinOp $ binOpPredator
-    { bOnInt    = KtBoolType `to` (>=)
-    , bOnDouble = KtBoolType `to` (>=)
-    , bOnString = KtBoolType `to` (>=)
-    , bOnBool   = KtBoolType `to` (>=)
-    }
-
-  ktLt :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktLt = interpretBinOp $ binOpPredator
-    { bOnInt    = KtBoolType `to` (<)
-    , bOnDouble = KtBoolType `to` (<)
-    , bOnString = KtBoolType `to` (<)
-    , bOnBool   = KtBoolType `to` (<)
-    }
-
-  ktLte :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktLte = interpretBinOp $ binOpPredator
-    { bOnInt    = KtBoolType `to` (<=)
-    , bOnDouble = KtBoolType `to` (<=)
-    , bOnString = KtBoolType `to` (<=)
-    , bOnBool   = KtBoolType `to` (<=)
-    }
+  (@||@) :: (Console c) => Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
+  (@||@) = interpretBinOp $ binOpPredator { bOnBool = KtBoolType `to` (||) }
 
   ktInt :: (Console c) => Int -> Interpret (KtValue c)
   ktInt = interpretConstant KtIntType
@@ -330,7 +330,7 @@ ktIO = fromList
   , ("println", [KtAnyType KtStringType]) `to` printFun1 consolePrintln
   , ("println", [KtAnyType KtUnitType])   `to` printFun1 consolePrintln
   , ("println", [KtAnyType KtBoolType])   `to` printFun1 consolePrintln
-  
+
   , ("readLine().toInt", []) `to` \_ [] ->
       HiddenIO KtIntType $ read @Int <$> consoleReadLine
   , ("readLine().toDouble", []) `to` \_ [] ->
@@ -519,16 +519,16 @@ instance Show (KtType t) where
     KtUnitType   -> "Unit"
     KtBoolType   -> "Bool"
 
-infix 4 @==@
-(@==@) :: (Typeable a, Typeable b) => KtType a -> KtType b -> Bool
-(_ :: KtType a) @==@ (_ ::KtType b) =
-  case eqT @a @b of
-    Nothing -> False
-    Just _  -> True
+typeId :: KtType t -> Int
+typeId = \case
+    KtIntType    -> 0
+    KtDoubleType -> 1
+    KtStringType -> 2
+    KtBoolType   -> 3
+    KtUnitType   -> 4
 
-infix 4 @<=@
-(@<=@) :: KtType a -> KtType b -> Bool
-aType @<=@ bType = show aType <= show bType
+aTypeId :: KtAnyType -> Int
+aTypeId (KtAnyType t) = typeId t
 
 instance Show KtAnyType where
   show :: KtAnyType -> String
@@ -536,8 +536,8 @@ instance Show KtAnyType where
 
 instance Eq KtAnyType where
   (==) :: KtAnyType -> KtAnyType -> Bool
-  KtAnyType typeL == KtAnyType typeR = typeL @==@ typeR
+  typeL == typeR = aTypeId typeL == aTypeId typeR
 
 instance Ord KtAnyType where
   (<=) :: KtAnyType -> KtAnyType -> Bool
-  KtAnyType typeL <= KtAnyType typeR = typeL @<=@ typeR
+  typeL <= typeR = aTypeId typeL <= aTypeId typeR

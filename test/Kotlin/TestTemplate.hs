@@ -152,26 +152,26 @@ testTemplates =
       { ttName = "Call functions"
       , ttPsi = KtPsiFile $
           [ unitFunPsi "f0"
-              [ printlnPsi $ KtPsiString "from f0():" ]
+              [ printlnPsi $ psi's "from f0():" ]
           , mainPsi
-              [ printlnPsi $ KtPsiString "from main():"
+              [ printlnPsi $ psi's "from main():"
               , callFun0Psi "f0"
-              , callFun1Psi "f1" (KtPsiInt 1)
+              , callFun1Psi "f1" psi'1
               , callFun1Psi "f1" (KtPsiBool True)
-              , callFun2Psi "f2" (KtPsiInt 1) (KtPsiInt 2)
+              , callFun2Psi "f2" psi'1 psi'2
               ]
           , KtPsiFun "f1"
               [ "a" `to` KtAnyType KtIntType ]
               (KtAnyType KtUnitType)
-              [ printlnPsi $ KtPsiString "from f1(Int):"
-              , printPsi $ KtPsiString "  a: "
+              [ printlnPsi $ psi's "from f1(Int):"
+              , printPsi   $ psi's "  a: "
               , printlnPsi $ KtPsiReadVariable "a"
               ]
           , KtPsiFun "f1"
               [ "a" `to` KtAnyType KtBoolType ]
               (KtAnyType KtUnitType)
-              [ printlnPsi $ KtPsiString "from f1(Bool):"
-              , printPsi $ KtPsiString "  a: "
+              [ printlnPsi $ psi's "from f1(Bool):"
+              , printPsi   $ psi's "  a: "
               , printlnPsi $ KtPsiReadVariable "a"
               ]
           , KtPsiFun "f2"
@@ -179,10 +179,10 @@ testTemplates =
               , "a2" `to` KtAnyType KtIntType
               ]
               (KtAnyType KtUnitType)
-              [ printlnPsi $ KtPsiString "from f2(Int, Int):"
-              , printPsi $ KtPsiString "  a1: "
+              [ printlnPsi $ psi's "from f2(Int, Int):"
+              , printPsi   $ psi's "  a1: "
               , printlnPsi $ KtPsiReadVariable "a1"
-              , printPsi $ KtPsiString "  a2: "
+              , printPsi   $ psi's "  a2: "
               , printlnPsi $ KtPsiReadVariable "a2"
               ]
           ]
@@ -235,13 +235,13 @@ testTemplates =
       { ttName = "Work with variables"
       , ttPsi = KtPsiFile $
           [ mainPsi
-              [ valPsi "s" (KtAnyType KtStringType) (KtPsiString "left>" `KtPsiAddition` KtPsiString "<right")
+              [ valPsi "s" (KtAnyType KtStringType) (psi's "left>" :+: psi's "<right")
               , printlnPsi (KtPsiReadVariable "s")
-              , varPsi "i" (KtAnyType KtIntType) (KtPsiInt 1)
+              , varPsi "i" (KtAnyType KtIntType) psi'1
               , printlnPsi (KtPsiReadVariable "i")
               , KtPsiSetVariable "i"
-                  ( KtPsiReadVariable "i" `KtPsiAddition`
-                    KtPsiReadVariable "i" `KtPsiAddition` 
+                  ( KtPsiReadVariable "i" :+:
+                    KtPsiReadVariable "i" :+:
                     KtPsiReadVariable "i"
                   )
               , printlnPsi (KtPsiReadVariable "i")
@@ -268,18 +268,16 @@ testTemplates =
       { ttName = "For & If"
       , ttPsi = KtPsiFile $
           [ mainPsi
-              [ KtPsiFor "i" (KtPsiInt 1) (KtPsiInt 10)
+              [ KtPsiFor "i" psi'1 (KtPsiInt 10)
                   [ printPsi (KtPsiReadVariable "i")
-                  , printPsi (KtPsiString " is ")
+                  , printPsi (psi's " is ")
                   , KtPsiIf
-                      [ ( KtPsiReadVariable "i" `KtPsiRatio`
-                          KtPsiInt 2 `KtPsiMultiplication`
-                          KtPsiInt 2 `KtPsiEq`
-                          KtPsiReadVariable "i"
-                        , [ printlnPsi (KtPsiString "even") ]
+                      [ ( KtPsiReadVariable "i" :/: psi'2 :*: psi'2
+                            :==: KtPsiReadVariable "i"
+                        , [ printlnPsi (psi's "even") ]
                         )
                       ]
-                      [ printlnPsi (KtPsiString "odd") ]
+                      [ printlnPsi (psi's "odd") ]
                   ]
               ]
           ]
@@ -311,6 +309,15 @@ testTemplates =
           ""
       }
   ]
+
+psi'1 :: (Console c) => KotlinPsi (KtValue c)
+psi'1 = KtPsiInt 1
+
+psi'2 :: (Console c) => KotlinPsi (KtValue c)
+psi'2 = KtPsiInt 2
+
+psi's :: (Console c) => String -> KotlinPsi (KtValue c)
+psi's = KtPsiString
 
 valPsi :: (Console c) => Name -> KtAnyType -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
 valPsi = KtPsiInitVariable True

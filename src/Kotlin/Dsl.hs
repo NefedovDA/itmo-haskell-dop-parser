@@ -75,34 +75,46 @@ class Kotlin expr where
     => [(expr (KtValue c), [expr (KtCommand c)])]
     -> [expr (KtCommand c)]
     -> expr (KtCommand c)
-
-  ktAddition :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
-
-  ktDifferent :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
-
-  ktMultiplication :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
-
-  ktRatio :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
-
+  
   ktNegate :: (Console c) => expr (KtValue c) -> expr (KtValue c)
-
-  ktAnd :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
-
-  ktOr :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
   ktNot :: (Console c) => expr (KtValue c) -> expr (KtValue c)
 
-  ktEq :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+  infixl 7 @*@
+  (@*@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+  
+  infixl 7 @/@
+  (@/@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktNotEq :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+  infixl 6 @+@
+  (@+@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktGt :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+  infixl 6 @-@
+  (@-@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktGte :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+  infixl 5 @>@
+  (@>@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktLt :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+  infixl 5 @>=@
+  (@>=@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
-  ktLte :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+  infixl 5 @<@
+  (@<@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+
+  infixl 5 @<=@
+  (@<=@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+  
+  infixl 4 @==@
+  (@==@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+  
+  infixl 4 @!=@
+  (@!=@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+
+  infixl 3 @&&@
+  (@&&@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+
+  infixl 2 @||@
+  (@||@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
   ktInt :: (Console c) => Int -> expr (KtValue c)
 

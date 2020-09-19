@@ -3,6 +3,7 @@ module Parsing.Parser
   ( happyParserExpression
   ) where
 
+import           Parsing.KotlinPsi (KotlinPsi(..))
 import qualified Parsing.KotlinPsi as KT
 import qualified Parsing.Result    as R
 import qualified Parsing.Token     as T
@@ -77,14 +78,14 @@ import qualified Parsing.Utils     as U
 %%
 
 File
-  : FunList                                       { KT.KtPsiFile $1 }
+  : FunList                                       { KtPsiFile $1 }
 
 FunList
   : Fun FunList                                   { $1 : $2 }
   |                                               { []      }
 
 Fun
-  : FUN NAME '(' ArgList ')' ':' Type '{' CommandList '}'    { KT.KtPsiFun $2 $4 $7 $9 }
+  : FUN NAME '(' ArgList ')' ':' Type '{' CommandList '}'    { KtPsiFun $2 $4 $7 $9 }
 
 ArgList
   : Arg ',' ArgList                               { $1 : $3 }
@@ -107,26 +108,26 @@ Command
   | If                                            { $1 }
 
 Return
-  : RETURN                                        { U.defaultReturn   }
-  | RETURN Value                                  { KT.KtPsiReturn $2 }
+  : RETURN                                        { U.defaultReturn }
+  | RETURN Value                                  { KtPsiReturn $2  }
 
 JustValue
-  : Value                                         { KT.KtPsiValueCommand $1 }
+  : Value                                         { KtPsiValueCommand $1 }
 
 InitVar
-  : VAL NAME ':' Type '=' Value                   { KT.KtPsiInitVariable True  $2 $4 $6 }
-  | VAR NAME ':' Type '=' Value                   { KT.KtPsiInitVariable False $2 $4 $6 }
+  : VAL NAME ':' Type '=' Value                   { KtPsiInitVariable True  $2 $4 $6 }
+  | VAR NAME ':' Type '=' Value                   { KtPsiInitVariable False $2 $4 $6 }
 
 SetVar
-  : NAME '=' Value                                { KT.KtPsiSetVariable $1 $3 }
+  : NAME '=' Value                                { KtPsiSetVariable $1 $3 }
 
 For
-  : FOR '(' NAME IN Value '..' Value ')' '{' CommandList '}'    { KT.KtPsiFor $3 $5 $7 $10 }
+  : FOR '(' NAME IN Value '..' Value ')' '{' CommandList '}'    { KtPsiFor $3 $5 $7 $10 }
 
 If
   : IfBranch ELSE If                              { U.addBranch $1  $3 }
-  | IfBranch ELSE '{' CommandList '}'             { KT.KtPsiIf [$1] $4 }
-  | IfBranch                                      { KT.KtPsiIf [$1] [] }
+  | IfBranch ELSE '{' CommandList '}'             { KtPsiIf [$1] $4    }
+  | IfBranch                                      { KtPsiIf [$1] []    }
 
 IfBranch
   : IF '(' Value ')' '{' CommandList '}'          { ($3, $6) }
@@ -135,39 +136,39 @@ Value
   : Or                                            { $1 }
 
 Or
-  : Or '||' And                                   { KT.KtPsiOr $1 $3 }
-  | And                                           { $1               }
+  : Or '||' And                                   { $1 :||: $3 }
+  | And                                           { $1         }
 
 And
-  : And '&&' Eq                                   { KT.KtPsiAnd $1 $3 }
-  | Eq                                            { $1                }
+  : And '&&' Eq                                   { $1 :&&: $3 }
+  | Eq                                            { $1         }
 
 Eq
-  : Eq '==' Comp                                  { KT.KtPsiEq    $1 $3 }
-  | Eq '!=' Comp                                  { KT.KtPsiNotEq $1 $3 }
-  | Comp                                          { $1                  }
+  : Eq '==' Comp                                  { $1 :==: $3 }
+  | Eq '!=' Comp                                  { $1 :!=: $3 }
+  | Comp                                          { $1         }
 
 Comp
-  : Comp '>'  Plus                                { KT.KtPsiGt  $1 $3 }
-  | Comp '<'  Plus                                { KT.KtPsiLt  $1 $3 }
-  | Comp '>=' Plus                                { KT.KtPsiGte $1 $3 }
-  | Comp '<=' Plus                                { KT.KtPsiLte $1 $3 }
-  | Plus                                          { $1                }
+  : Comp '>'  Plus                                { $1 :>:  $3 }
+  | Comp '<'  Plus                                { $1 :<:  $3 }
+  | Comp '>=' Plus                                { $1 :>=: $3 }
+  | Comp '<=' Plus                                { $1 :<=: $3 }
+  | Plus                                          { $1         }
 
 Plus
-  : Plus '+' Mult                                 { KT.KtPsiAddition  $1 $3 }
-  | Plus '-' Mult                                 { KT.KtPsiDifferent $1 $3 }
-  | Mult                                          { $1                      }
+  : Plus '+' Mult                                 { $1 :+: $3 }
+  | Plus '-' Mult                                 { $1 :-: $3 }
+  | Mult                                          { $1        }
 
 Mult
-  : Mult '*' Unary                                { KT.KtPsiMultiplication $1 $3 }
-  | Mult '/' Unary                                { KT.KtPsiRatio          $1 $3 }
-  | Unary                                         { $1                           }
+  : Mult '*' Unary                                { $1 :*: $3 }
+  | Mult '/' Unary                                { $1 :/: $3 }
+  | Unary                                         { $1        }
 
 Unary
-  : '!' Unary                                     { KT.KtPsiNot    $2 }
-  | '-' Unary                                     { KT.KtPsiNegate $2 }
-  | Target                                        { $1                }
+  : '!' Unary                                     { KtPsiNot    $2 }
+  | '-' Unary                                     { KtPsiNegate $2 }
+  | Target                                        { $1             }
 
 
 Target
@@ -181,7 +182,7 @@ Target
   | Unit                                          { $1 }
 
 CallFun
-  : NAME '(' ValueList ')'                        { KT.KtPsiCallFun $1 $3 }
+  : NAME '(' ValueList ')'                        { KtPsiCallFun $1 $3 }
 
 ValueList
   : Value ',' ValueList                           { $1 : $3 }
@@ -189,7 +190,7 @@ ValueList
   |                                               { []      }
 
 ReadVar
-  : NAME                                          { KT.KtPsiReadVariable $1 }
+  : NAME                                          { KtPsiReadVariable $1 }
 
 Int
   : INT_NUM                                       {% U.checkedInt $1 }
@@ -201,11 +202,11 @@ String
   : STR                                           { U.updatedString $1 }
 
 Bool
-  : TRUE                                          { KT.KtPsiBool True  }
-  | FALSE                                         { KT.KtPsiBool False }
+  : TRUE                                          { KtPsiBool True  }
+  | FALSE                                         { KtPsiBool False }
 
 Unit
-  : UNIT                                          { KT.KtPsiUnit () }
+  : UNIT                                          { KtPsiUnit () }
 
 Type
   : UNIT                                          { KT.KtAnyType KT.KtUnitType   }

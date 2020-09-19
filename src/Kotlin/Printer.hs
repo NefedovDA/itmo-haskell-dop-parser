@@ -87,47 +87,47 @@ instance Kotlin Printer where
   ktReadVariable name = Printer $ \offset ->
     getOffset offset ++ name
 
-  ktAddition :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktAddition = printBinOp "+"
-
-  ktDifferent :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktDifferent = printBinOp "-"
-
-  ktMultiplication :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktMultiplication = printBinOp "*"
-
-  ktRatio :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktRatio = printBinOp "/"
-
   ktNegate :: Printer (KtValue c) -> Printer (KtValue c)
   ktNegate = printUnoOp "-"
-
-  ktAnd :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktAnd = printBinOp "&&"
-
-  ktOr :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktOr = printBinOp "||"
 
   ktNot :: Printer (KtValue c) -> Printer (KtValue c)
   ktNot = printUnoOp "!"
 
-  ktEq :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktEq = printBinOp "=="
+  (@*@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@*@) = printBinOp "*"
 
-  ktNotEq :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktNotEq = printBinOp "!="
+  (@/@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@/@) = printBinOp "/"
 
-  ktGt :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktGt = printBinOp ">"
+  (@+@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@+@) = printBinOp "+"
 
-  ktGte :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktGte = printBinOp ">="
+  (@-@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@-@) = printBinOp "-"
 
-  ktLt :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktLt = printBinOp "<"
+  (@>@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@>@) = printBinOp ">"
 
-  ktLte :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktLte = printBinOp "<="
+  (@>=@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@>=@) = printBinOp ">="
+
+  (@<@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@<@) = printBinOp "<"
+
+  (@<=@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@<=@) = printBinOp "<="
+
+  (@==@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@==@) = printBinOp "=="
+
+  (@!=@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@!=@) = printBinOp "!="
+
+  (@&&@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@&&@) = printBinOp "&&"
+
+  (@||@) :: Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
+  (@||@) = printBinOp "||"
 
   ktInt :: Int -> Printer (KtValue c)
   ktInt i = Printer $ \offset ->
