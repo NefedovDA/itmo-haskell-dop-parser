@@ -4,16 +4,15 @@ module Kotlin.Dsl
   ( Kotlin(..)
   , Console(..)
   
-  , KtDeclarations(..)
+  , KtDeclarations
   , KtScope(..)
 
   , KtFile
 
-  , KtFun0
-  , KtFun1
-  , KtFun2
+  , KtFun
   
   , KtFunData
+  , KtFunKey
 
   , KtVariableInfo
 
@@ -37,29 +36,13 @@ import Data.Typeable (Typeable)
 class Kotlin expr where
   ktFile :: (Console c) => KtDeclarations expr c -> expr (KtFile c)
 
-  ktFun0
+  ktFun
     :: (Console c)
     => Name
+    -> [KtFunArg]
     -> KtAnyType
     -> [expr (KtCommand c)]
-    -> expr (KtFunData (KtFun0 c))
-
-  ktFun1
-    :: (Console c)
-    => Name
-    -> KtFunArg
-    -> KtAnyType
-    -> [expr (KtCommand c)]
-    -> expr (KtFunData (KtFun1 c))
-
-  ktFun2
-    :: (Console c)
-    => Name
-    -> KtFunArg
-    -> KtFunArg
-    -> KtAnyType
-    -> [expr (KtCommand c)]
-    -> expr (KtFunData (KtFun2 c))
+    -> expr (KtFunData c)
 
   ktInitVariable
     :: (Console c)
@@ -75,11 +58,7 @@ class Kotlin expr where
 
   ktValueCommand :: (Console c) => expr (KtValue c) -> expr (KtCommand c)
 
-  ktCallFun0 :: (Console c) => Name -> expr (KtValue c)
-
-  ktCallFun1 :: (Console c) => Name -> expr (KtValue c) -> expr (KtValue c)
-
-  ktCallFun2 :: (Console c) => Name -> expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
+  ktCallFun :: (Console c) => Name -> [expr (KtValue c)] -> expr (KtValue c)
 
   ktReadVariable :: (Console c) => Name -> expr (KtValue c)
 
@@ -140,17 +119,10 @@ class Monad m => Console m where
   consolePrintln  :: String -> m ()
   consoleReadLine :: m String
 
-data KtDeclarations expr c = KtDeclarations
-  { kdFun0 :: [expr (KtFunData (KtFun0 c))]
-  , kdFun1 :: [expr (KtFunData (KtFun1 c))]
-  , kdFun2 :: [expr (KtFunData (KtFun2 c))]
-  }
+type KtDeclarations expr c = [expr (KtFunData c)]
 
 data KtScope c = KtScope
-  { sFun0 :: Map String (KtFun0 c)
-  , sFun1 :: Map String (KtFun1 c)
-  , sFun2 :: Map String (KtFun2 c)
-  
+  { sFun      :: Map KtFunKey (KtFun c)
   , sVariable :: [Map String (KtVariableInfo c)]
   }
 
@@ -158,13 +130,11 @@ type KtVariableInfo c = (Bool, HiddenIO c)
 
 type KtFile c = c ()
 
-type KtFun0 c = KtScope c -> HiddenIO c
+type KtFun c = KtScope c -> [HiddenIO c] -> HiddenIO c
 
-type KtFun1 c = KtScope c -> HiddenIO c -> HiddenIO c
+type KtFunData c = (KtFunKey, KtFun c)
 
-type KtFun2 c = KtScope c -> HiddenIO c -> HiddenIO c -> HiddenIO c
-
-type KtFunData fun = (Name, fun)
+type KtFunKey = (Name, [KtAnyType])
 
 type Name = String
 

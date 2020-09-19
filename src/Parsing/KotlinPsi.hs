@@ -21,27 +21,13 @@ import Kotlin.Printer (Printer)
 data KotlinPsi a where
   KtPsiFile :: (Console c) => KtDeclarations KotlinPsi c -> KotlinPsi (KtFile c)
 
-  KtPsiFun0
+  KtPsiFun
     :: (Console c)
     => Name
+    -> [KtFunArg]
     -> KtAnyType
     -> [KotlinPsi (KtCommand c)]
-    -> KotlinPsi (KtFunData (KtFun0 c))
-  KtPsiFun1
-    :: (Console c)
-    => Name
-    -> KtFunArg
-    -> KtAnyType
-    -> [KotlinPsi (KtCommand c)]
-    -> KotlinPsi (KtFunData (KtFun1 c))
-  KtPsiFun2
-    :: (Console c)
-    => Name
-    -> KtFunArg
-    -> KtFunArg
-    -> KtAnyType
-    -> [KotlinPsi (KtCommand c)]
-    -> KotlinPsi (KtFunData (KtFun2 c))
+    -> KotlinPsi (KtFunData c)
   
   KtPsiInitVariable
       :: (Console c)
@@ -56,10 +42,9 @@ data KotlinPsi a where
   KtPsiReturn :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
   KtPsiValueCommand :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
   
-  KtPsiCallFun0 :: (Console c) => Name -> KotlinPsi (KtValue c)
-  KtPsiCallFun1 :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
-  KtPsiCallFun2 :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
   
+  KtPsiCallFun :: (Console c) => Name -> [KotlinPsi (KtValue c)] -> KotlinPsi (KtValue c)
+
   KtPsiReadVariable :: (Console c) => Name -> KotlinPsi (KtValue c)
   
   KtPsiFor
@@ -97,13 +82,6 @@ data KotlinPsi a where
   KtPsiBool :: (Console c) => Bool -> KotlinPsi (KtValue c)
   KtPsiUnit :: (Console c) => () -> KotlinPsi (KtValue c)
 
-instance Eq (KtDeclarations KotlinPsi c) where
-  (==) :: KtDeclarations KotlinPsi c -> KtDeclarations KotlinPsi c -> Bool
-  decL == decR =
-    (kdFun0 decL == kdFun0 decR) &&
-    (kdFun1 decL == kdFun1 decR) &&
-    (kdFun2 decL == kdFun2 decR)
-
 instance Eq KtAnyType where
   (==) :: KtAnyType -> KtAnyType -> Bool
   KtAnyType (_ :: KtType a) == KtAnyType (_ ::KtType b) =
@@ -116,21 +94,11 @@ instance Eq (KotlinPsi a) where
   KtPsiFile fDecL == KtPsiFile fDecR
     = fDecL == fDecR
 
-  KtPsiFun0 nameL rTypeL cmdsL == KtPsiFun0 nameR rTypeR cmdsR =
+  KtPsiFun nameL argsL rTypeL cmdsL == KtPsiFun nameR argsR rTypeR cmdsR =
     (nameL == nameR)
+      && (argsL == argsR)
       && (rTypeL == rTypeR)
       && (cmdsL == cmdsR)
-  KtPsiFun1 nameL argL rTypeL cmdsL == KtPsiFun1 nameR argR rTypeR cmdsR =
-    (nameL == nameR)
-      && (argL == argR)
-      && (rTypeL == rTypeR)
-      && (cmdsL == cmdsR)
-  KtPsiFun2 nameL arg1L arg2L rTypeL cmdsL == KtPsiFun2 nameR arg1R arg2R rTypeR cmdsR =
-    (nameL == nameR)
-      && (arg1L == arg1R)
-      && (arg2L == arg2R)
-      && (rTypeL == rTypeR)
-      && (cmdsL  == cmdsR)
 
   KtPsiInitVariable isConstantL nameL typeL valueL
     == KtPsiInitVariable isConstantR nameR typeR valueR =
@@ -145,15 +113,10 @@ instance Eq (KotlinPsi a) where
 
   KtPsiReturn valueL == KtPsiReturn valueR = valueL == valueR
   KtPsiValueCommand valueL == KtPsiValueCommand valueR = valueL == valueR
-  
-  KtPsiCallFun0 nameL == KtPsiCallFun0 nameR = nameL == nameR
-  KtPsiCallFun1 nameL aL == KtPsiCallFun1 nameR aR =
+
+  KtPsiCallFun nameL argsL == KtPsiCallFun nameR argsR =
     (nameL == nameR)
-      && (aL == aR)
-  KtPsiCallFun2 nameL a1L a2L == KtPsiCallFun2 nameR a1R a2R =
-    (nameL == nameR)
-      && (a1L == a1R)
-      && (a2L == a2R)
+      && (argsL == argsR)
 
   KtPsiReadVariable nameL == KtPsiReadVariable nameR = nameL == nameR
   
@@ -210,15 +173,9 @@ instance Show (KotlinPsi a) where
 
 transform :: Kotlin expr => KotlinPsi a -> expr a
 transform a = case a of
-  KtPsiFile dec -> ktFile $ KtDeclarations
-    { kdFun0 = transform <$> kdFun0 dec  
-    , kdFun1 = transform <$> kdFun1 dec  
-    , kdFun2 = transform <$> kdFun2 dec  
-    }
+  KtPsiFile ds -> ktFile $ transform <$> ds
 
-  KtPsiFun0 n t cs     -> ktFun0 n t $ transform <$> cs
-  KtPsiFun1 n a t cs   -> ktFun1 n a t $ transform <$> cs
-  KtPsiFun2 n a b t cs -> ktFun2 n a b t $ transform <$> cs
+  KtPsiFun n as t cs   -> ktFun n as t $ transform <$> cs
   
   KtPsiInitVariable ic n t v -> ktInitVariable ic n t $ transform v
   KtPsiSetVariable n v       -> ktSetVariable n $ transform v
@@ -226,9 +183,7 @@ transform a = case a of
   KtPsiReturn r -> ktReturn $ transform r
   KtPsiValueCommand r -> ktValueCommand $ transform r
   
-  KtPsiCallFun0 n -> ktCallFun0 n
-  KtPsiCallFun1 n a -> ktCallFun1 n $ transform a
-  KtPsiCallFun2 n a1 a2 -> ktCallFun2 n (transform a1) (transform a2)
+  KtPsiCallFun n as -> ktCallFun n $ transform <$> as
 
   KtPsiReadVariable n  -> ktReadVariable n
   

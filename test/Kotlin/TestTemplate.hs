@@ -74,15 +74,14 @@ testTemplates :: [TestTemplate]
 testTemplates =
   [ TestTemplate
       { ttName = "Empty file"
-      , ttPsi = KtPsiFile emptyDeclarations
+      , ttPsi = KtPsiFile []
       , ttPrinted = ""
       , ttInterpreted = Nothing
       }
   , TestTemplate
       { ttName = "Simple main"
       , ttPsi = KtPsiFile $
-          emptyDeclarations
-            { kdFun0 = [ mainPsi [] ] }
+          [ mainPsi [] ]
       , ttPrinted =
           "fun main(): Unit {" ++!
           "}"                  ++!
@@ -92,8 +91,7 @@ testTemplates =
   , TestTemplate
       { ttName = "Main with return"
       , ttPsi = KtPsiFile $
-          emptyDeclarations
-            { kdFun0 = [ mainPsi [ KtPsiReturn $ KtPsiUnit () ] ] }
+          [ mainPsi [ KtPsiReturn $ KtPsiUnit () ] ]
       , ttPrinted =
           "fun main(): Unit {" ++!
           "  return Unit;"     ++!
@@ -104,15 +102,12 @@ testTemplates =
   , TestTemplate
       { ttName = "Main with several return"
       , ttPsi = KtPsiFile $
-          emptyDeclarations
-            { kdFun0 =
-                [ mainPsi
-                    [ KtPsiReturn $ KtPsiUnit ()
-                    , KtPsiReturn $ KtPsiUnit ()
-                    , KtPsiReturn $ KtPsiUnit ()
-                    ]
-                ]
-            }
+          [ mainPsi
+              [ KtPsiReturn $ KtPsiUnit ()
+              , KtPsiReturn $ KtPsiUnit ()
+              , KtPsiReturn $ KtPsiUnit ()
+              ]
+          ]
       , ttPrinted =
           "fun main(): Unit {" ++!
           "  return Unit;"     ++!
@@ -125,18 +120,15 @@ testTemplates =
   , TestTemplate
       { ttName = "Print statements"
       , ttPsi = KtPsiFile $
-          emptyDeclarations
-            { kdFun0 =
-                [ mainPsi
-                    [ printlnPsi $ KtPsiInt    1
-                    , printlnPsi $ KtPsiDouble 1.0
-                    , printlnPsi $ KtPsiString "s"
-                    , printlnPsi $ KtPsiBool   True
-                    , printlnPsi $ KtPsiBool   False
-                    , printlnPsi $ KtPsiUnit   ()
-                    ]
-                ]
-            }
+          [ mainPsi
+              [ printlnPsi $ KtPsiInt    1
+              , printlnPsi $ KtPsiDouble 1.0
+              , printlnPsi $ KtPsiString "s"
+              , printlnPsi $ KtPsiBool   True
+              , printlnPsi $ KtPsiBool   False
+              , printlnPsi $ KtPsiUnit   ()
+              ]
+          ]
       , ttPrinted =
           "fun main(): Unit {" ++!
           "  println(1);"      ++!
@@ -159,47 +151,41 @@ testTemplates =
   , TestTemplate
       { ttName = "Call functions"
       , ttPsi = KtPsiFile $
-          emptyDeclarations
-            { kdFun0 =
-                [ unitFunPsi "f0"
-                    [ printlnPsi $ KtPsiString "from f0():" ]
-                , mainPsi
-                    [ printlnPsi $ KtPsiString "from main():"
-                    , callFun0Psi "f0"
-                    , callFun1Psi "f1" (KtPsiInt 1)
-                    , callFun1Psi "f1" (KtPsiBool True)
-                    , callFun2Psi "f2" (KtPsiInt 1) (KtPsiInt 2)
-                    ]
-                ]
-            , kdFun1 =
-                [ KtPsiFun1 "f1"
-                    ("a", KtAnyType KtIntType)
-                    (KtAnyType KtUnitType)
-                    [ printlnPsi $ KtPsiString "from f1(Int):"
-                    , printPsi $ KtPsiString "  a: "
-                    , printlnPsi $ KtPsiReadVariable "a"
-                    ]
-                , KtPsiFun1 "f1"
-                    ("a", KtAnyType KtBoolType)
-                    (KtAnyType KtUnitType)
-                    [ printlnPsi $ KtPsiString "from f1(Bool):"
-                    , printPsi $ KtPsiString "  a: "
-                    , printlnPsi $ KtPsiReadVariable "a"
-                    ]
-                ]
-            , kdFun2 =
-                [ KtPsiFun2 "f2"
-                    ("a1", KtAnyType KtIntType)
-                    ("a2", KtAnyType KtIntType)
-                    (KtAnyType KtUnitType)
-                    [ printlnPsi $ KtPsiString "from f2(Int, Int):"
-                    , printPsi $ KtPsiString "  a1: "
-                    , printlnPsi $ KtPsiReadVariable "a1"
-                    , printPsi $ KtPsiString "  a2: "
-                    , printlnPsi $ KtPsiReadVariable "a2"
-                    ]
-                ]
-            }
+          [ unitFunPsi "f0"
+              [ printlnPsi $ KtPsiString "from f0():" ]
+          , mainPsi
+              [ printlnPsi $ KtPsiString "from main():"
+              , callFun0Psi "f0"
+              , callFun1Psi "f1" (KtPsiInt 1)
+              , callFun1Psi "f1" (KtPsiBool True)
+              , callFun2Psi "f2" (KtPsiInt 1) (KtPsiInt 2)
+              ]
+          , KtPsiFun "f1"
+              [ "a" `to` KtAnyType KtIntType ]
+              (KtAnyType KtUnitType)
+              [ printlnPsi $ KtPsiString "from f1(Int):"
+              , printPsi $ KtPsiString "  a: "
+              , printlnPsi $ KtPsiReadVariable "a"
+              ]
+          , KtPsiFun "f1"
+              [ "a" `to` KtAnyType KtBoolType ]
+              (KtAnyType KtUnitType)
+              [ printlnPsi $ KtPsiString "from f1(Bool):"
+              , printPsi $ KtPsiString "  a: "
+              , printlnPsi $ KtPsiReadVariable "a"
+              ]
+          , KtPsiFun "f2"
+              [ "a1" `to` KtAnyType KtIntType
+              , "a2" `to` KtAnyType KtIntType
+              ]
+              (KtAnyType KtUnitType)
+              [ printlnPsi $ KtPsiString "from f2(Int, Int):"
+              , printPsi $ KtPsiString "  a1: "
+              , printlnPsi $ KtPsiReadVariable "a1"
+              , printPsi $ KtPsiString "  a2: "
+              , printlnPsi $ KtPsiReadVariable "a2"
+              ]
+          ]
       , ttPrinted =
           "fun f0(): Unit {"                   ++!
           "  println(\"from f0():\");"         ++!
@@ -248,22 +234,19 @@ testTemplates =
   , TestTemplate
       { ttName = "Work with variables"
       , ttPsi = KtPsiFile $
-          emptyDeclarations
-            { kdFun0 =
-                [ mainPsi
-                    [ valPsi "s" (KtAnyType KtStringType) (KtPsiString "left>" `KtPsiAddition` KtPsiString "<right")
-                    , printlnPsi (KtPsiReadVariable "s")
-                    , varPsi "i" (KtAnyType KtIntType) (KtPsiInt 1)
-                    , printlnPsi (KtPsiReadVariable "i")
-                    , KtPsiSetVariable "i"
-                        ( KtPsiReadVariable "i" `KtPsiAddition`
-                          KtPsiReadVariable "i" `KtPsiAddition` 
-                          KtPsiReadVariable "i"
-                        )
-                    , printlnPsi (KtPsiReadVariable "i")
-                    ]
-                ]
-            }
+          [ mainPsi
+              [ valPsi "s" (KtAnyType KtStringType) (KtPsiString "left>" `KtPsiAddition` KtPsiString "<right")
+              , printlnPsi (KtPsiReadVariable "s")
+              , varPsi "i" (KtAnyType KtIntType) (KtPsiInt 1)
+              , printlnPsi (KtPsiReadVariable "i")
+              , KtPsiSetVariable "i"
+                  ( KtPsiReadVariable "i" `KtPsiAddition`
+                    KtPsiReadVariable "i" `KtPsiAddition` 
+                    KtPsiReadVariable "i"
+                  )
+              , printlnPsi (KtPsiReadVariable "i")
+              ]
+          ]
       , ttPrinted =
           "fun main(): Unit {"             ++!
           "  val s: String = "
@@ -284,25 +267,22 @@ testTemplates =
   , TestTemplate
       { ttName = "For & If"
       , ttPsi = KtPsiFile $
-          emptyDeclarations
-            { kdFun0 =
-                [ mainPsi
-                    [ KtPsiFor "i" (KtPsiInt 1) (KtPsiInt 10)
-                        [ printPsi (KtPsiReadVariable "i")
-                        , printPsi (KtPsiString " is ")
-                        , KtPsiIf
-                            [ ( KtPsiReadVariable "i" `KtPsiRatio`
-                                KtPsiInt 2 `KtPsiMultiplication`
-                                KtPsiInt 2 `KtPsiEq`
-                                KtPsiReadVariable "i"
-                              , [ printlnPsi (KtPsiString "even") ]
-                              )
-                            ]
-                            [ printlnPsi (KtPsiString "odd") ]
-                        ]
-                    ]
-                ]
-            }
+          [ mainPsi
+              [ KtPsiFor "i" (KtPsiInt 1) (KtPsiInt 10)
+                  [ printPsi (KtPsiReadVariable "i")
+                  , printPsi (KtPsiString " is ")
+                  , KtPsiIf
+                      [ ( KtPsiReadVariable "i" `KtPsiRatio`
+                          KtPsiInt 2 `KtPsiMultiplication`
+                          KtPsiInt 2 `KtPsiEq`
+                          KtPsiReadVariable "i"
+                        , [ printlnPsi (KtPsiString "even") ]
+                        )
+                      ]
+                      [ printlnPsi (KtPsiString "odd") ]
+                  ]
+              ]
+          ]
       , ttPrinted =
           "fun main(): Unit {"              ++!
           "  for (i in 1..10) {"            ++!
@@ -338,22 +318,22 @@ valPsi = KtPsiInitVariable True
 varPsi :: (Console c) => Name -> KtAnyType -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
 varPsi = KtPsiInitVariable False
 
-unitFunPsi :: (Console c) => Name -> [KotlinPsi (KtCommand c)] -> KotlinPsi (KtFunData (KtFun0 c))
-unitFunPsi name = KtPsiFun0 name (KtAnyType KtUnitType)
+unitFunPsi :: (Console c) => Name -> [KotlinPsi (KtCommand c)] -> KotlinPsi (KtFunData c)
+unitFunPsi name = KtPsiFun name [] (KtAnyType KtUnitType)
 
-mainPsi :: (Console c) => [KotlinPsi (KtCommand c)] -> KotlinPsi (KtFunData (KtFun0 c))
+mainPsi :: (Console c) => [KotlinPsi (KtCommand c)] -> KotlinPsi (KtFunData c)
 mainPsi = unitFunPsi "main"
 
 callFun0Psi :: (Console c) => Name -> KotlinPsi (KtCommand c)
-callFun0Psi = KtPsiValueCommand . KtPsiCallFun0
+callFun0Psi n = KtPsiValueCommand $ KtPsiCallFun n []
 
 callFun1Psi :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
-callFun1Psi n a = KtPsiValueCommand $ KtPsiCallFun1 n a
+callFun1Psi n a = KtPsiValueCommand $ KtPsiCallFun n [a]
 
 callFun2Psi
   :: (Console c)
   => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
-callFun2Psi n a1 a2 = KtPsiValueCommand $ KtPsiCallFun2 n a1 a2
+callFun2Psi n a1 a2 = KtPsiValueCommand $ KtPsiCallFun n [a1, a2]
 
 printPsi :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
 printPsi = callFun1Psi "print"
@@ -364,11 +344,3 @@ printlnPsi = callFun1Psi "println"
 infixr 5  ++!
 (++!) :: String -> String -> String
 prefix ++! suffix = prefix ++ "\n" ++ suffix
-
-emptyDeclarations :: KtDeclarations KotlinPsi c
-emptyDeclarations =
-  KtDeclarations
-    { kdFun0 = []
-    , kdFun1 = []
-    , kdFun2 = []
-    }

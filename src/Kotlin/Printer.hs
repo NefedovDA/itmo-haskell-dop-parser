@@ -20,38 +20,16 @@ instance Show (Printer a) where
 instance Kotlin Printer where
   ktFile :: KtDeclarations Printer c -> Printer (KtFile c)
   ktFile fnDecl = Printer $ \offset ->
-    intercalate "\n" $ concat
-      [ flipPrint offset <$> kdFun0 fnDecl
-      , flipPrint offset <$> kdFun1 fnDecl
-      , flipPrint offset <$> kdFun2 fnDecl
-      ]
+    intercalate "\n" $ flipPrint offset <$> fnDecl
 
-  ktFun0
+  ktFun
     :: Name
+    -> [KtFunArg]
     -> KtAnyType
     -> [Printer (KtCommand c)]
-    -> Printer (KtFunData (KtFun0 c))
-  ktFun0 name rType cmds =
-    printKtFun name [] rType cmds
-
-  ktFun1
-    :: Name
-    -> KtFunArg
-    -> KtAnyType
-    -> [Printer (KtCommand c)]
-    -> Printer (KtFunData (KtFun1 c))
-  ktFun1 name arg rType cmds =
-    printKtFun name [arg] rType cmds
-
-  ktFun2
-    :: Name
-    -> KtFunArg
-    -> KtFunArg
-    -> KtAnyType
-    -> [Printer (KtCommand c)]
-    -> Printer (KtFunData (KtFun2 c))
-  ktFun2 name arg1 arg2 rType cmds =
-    printKtFun name [arg1, arg2] rType cmds
+    -> Printer (KtFunData c)
+  ktFun name args rType cmds =
+    printKtFun name args rType cmds
 
   ktInitVariable
     :: Bool
@@ -76,14 +54,8 @@ instance Kotlin Printer where
   ktValueCommand v = Printer $ \offset ->
     flipPrint offset v ++ ";"
 
-  ktCallFun0 :: Name -> Printer (KtValue c)
-  ktCallFun0 name = printCallFun name []
-
-  ktCallFun1 :: Name -> Printer (KtValue c) -> Printer (KtValue c)
-  ktCallFun1 name arg = printCallFun name [arg]
-
-  ktCallFun2 :: Name -> Printer (KtValue c) -> Printer (KtValue c) -> Printer (KtValue c)
-  ktCallFun2 name arg1 arg2 = printCallFun name [arg1, arg2]
+  ktCallFun :: Name -> [Printer (KtValue c)] -> Printer (KtValue c)
+  ktCallFun name args = printCallFun name args
 
   ktFor
     :: Name

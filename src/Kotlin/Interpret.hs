@@ -11,6 +11,7 @@ module Kotlin.Interpret
 
 import Control.Monad  (liftM2)
 import Data.Bifunctor (first)
+import Data.List      (intercalate)
 import Data.Map       (Map, insert, empty, fromList, (!?))
 import Data.Monoid    (First(..))
 import Data.Typeable  (Typeable, (:~:)(..), eqT)
@@ -18,92 +19,78 @@ import GHC.Float      (int2Double)
 
 import Kotlin.Dsl
 import Kotlin.Utils
+import Data.Functor ((<&>))
 
 newtype Interpret a = Interpret { interpret :: a }
 
 instance Kotlin Interpret where
-  ktFile :: (Console c) => KtDeclarations Interpret c -> Interpret (KtFile c)
+  ktFile :: forall c. (Console c) => KtDeclarations Interpret c -> Interpret (KtFile c)
   ktFile declarations = Interpret $ do
     let scope = KtScope
-          { sFun0 = foldr iterator readFuns  $ kdFun0 declarations
-          , sFun1 = foldr iterator printFuns $ kdFun1 declarations
-          , sFun2 = foldr iterator empty     $ kdFun2 declarations
-
+          { sFun      = toMap (interpret <$> declarations) ktIO
           , sVariable = []
           }
-    case interpret (ktCallFun0 "main") scope of
+    case interpret (ktCallFun "main" []) scope of
       HiddenIO KtUnitType ioMain -> ioMain
-      _ -> error "Execution error: `main : () -> Unit` function not defined!"
+      _ -> interpretError "`main(): Unit` function not defined!"
     where
-      iterator :: Interpret (KtFunData a) -> Map String a -> Map String a
-      iterator iFun funs = uncurry insert (interpret iFun) funs
+      toMap :: [KtFunData c] -> Map KtFunKey (KtFun c) -> Map KtFunKey (KtFun c)
+      toMap []                m = m
+      toMap ((key, fun):funs) m =
+        case m !? key of
+          Nothing -> toMap funs $ insert key fun m
+          Just _  -> interpretError $
+            "Multydefinition of function `" ++ uncurry getFunStr key ++ "`"
 
-  ktFun0
+  ktFun
     :: forall c. (Console c)
     => Name
+    -> [KtFunArg]
     -> KtAnyType
     -> [Interpret (KtCommand c)]
-    -> Interpret (KtFunData (KtFun0 c))
-  ktFun0 name raType@(KtAnyType (rType :: KtType rT)) cmds =
-    Interpret (fun2key name [], fun0)
+    -> Interpret (KtFunData c)
+  ktFun name argsInfo (KtAnyType rType) cmds =
+    Interpret ((name, snd <$> argsInfo), ktFun)
     where
-      fun0 :: (Console c) => (KtFun0 c)
-      fun0 = mkFunBody rType cmds . newVarArea
+      ktFun :: (Console c) => KtFun c
+      ktFun initScope args = HiddenIO rType $ do
+        argsValue <- evalArgs args  -- Support non-lazy behavior
+        let scope = putArgs argsInfo argsValue initScope
+        foldCommands scope rType $ interpret <$> cmds
+      
+      evalArgs :: (Console c) => [HiddenIO c] -> c [HiddenIO c]
+      evalArgs [] = return []
+      evalArgs ((HiddenIO aType ioV):args) = do
+        v <- ioV
+        let hv = HiddenIO aType $ return v
+        (hv :) <$> evalArgs args
 
-  ktFun1
-    :: forall c. (Console c)
-    => Name
-    -> KtFunArg
-    -> KtAnyType
-    -> [Interpret (KtCommand c)]
-    -> Interpret (KtFunData (KtFun1 c))
-  ktFun1 name (aName, aaType@(KtAnyType aType)) (KtAnyType rType) cmds =
-    Interpret (fun2key name [aaType], fun1)
-    where
-      fun1 :: (KtFun1 c)
-      fun1 = \scope a@(HiddenIO afType _) ->
-        if afType @==@ aType
-        then
-          mkFunBody rType cmds $
-            putValue aName a   $
-            newVarArea scope
-        else
-          error $
-            "Incorrect type of argument "
-              ++ "`" ++ aName ++ "` in a function "
-              ++ "`" ++ name  ++ "`"
-
-  ktFun2
-    :: forall c. (Console c)
-    => Name
-    -> KtFunArg
-    -> KtFunArg
-    -> KtAnyType
-    -> [Interpret (KtCommand c)]
-    -> Interpret (KtFunData (KtFun2 c))
-  ktFun2
-    name
-    (a1Name, a1aType@(KtAnyType a1Type))
-    (a2Name, a2aType@(KtAnyType a2Type))
-    (KtAnyType rType)
-    cmds
-      =
-    if a1Name == a2Name
-    then error "The same names of arguments"
-    else Interpret (fun2key name [a1aType, a2aType], fun2)
-    where
-      fun2 :: (Console c) => (KtFun2 c)
-      fun2 = \scope a1@(HiddenIO a1fType _) a2@(HiddenIO a2fType _) ->
-        if a1fType @==@ a1Type && a2fType @==@ a2Type
-        then
-          mkFunBody rType cmds $
-            putValue a1Name a1 $
-            putValue a2Name a2 $
-            newVarArea scope
-        else
-          error $
-            "Incorrect type of some argument in a function "
-              ++ "`" ++ name  ++ "`"
+      putArgs :: (Console c) => [KtFunArg] -> [HiddenIO c] -> KtScope c -> KtScope c
+      putArgs argsInfo argsValues initScope
+        | length argsInfo == length argsValues =
+            go argsInfo argsValues $ newVarArea initScope
+        | otherwise =
+            logicError $ withDiff  -- Should be checked on call, before interpret
+              ( "Incorrect count of args to call function "
+                   ++ "`" ++ getFunStr name (snd <$> argsInfo) ++ "`."
+              )
+              ( show $ length argsInfo
+              , show $ length argsValues
+              )
+        where
+          go :: (Console c) => [KtFunArg] -> [HiddenIO c] -> KtScope c -> KtScope c
+          go [] [] scope = scope
+          go ((aName, KtAnyType aType):is) (hv@(HiddenIO vType _):vs) scope
+            | aType @==@ vType =
+                go is vs $ putValue aName hv scope
+            | otherwise =
+                logicError $ withDiff  -- Should be checked on call, before interpret
+                  ( "Incorrect type of agument `" ++ aName ++ "` at function "
+                      ++ "`" ++ getFunStr name (snd <$> argsInfo) ++ "`"
+                  )
+                  ( show aType
+                  , show vType
+                  )
 
   ktInitVariable
     :: (Console c)
@@ -139,31 +126,18 @@ instance Kotlin Interpret where
     case interpret iv scope of
         HiddenIO _ ioa -> ioa >> return scope
 
-  ktCallFun0 :: Name -> Interpret (KtValue c)
-  ktCallFun0 name = Interpret $ \scope ->
-    fromJust
-      ("no function " ++ name ++ "()")
-      (sFun0 scope !? fun2key name [])
-      scope
 
-
-  ktCallFun1 :: Name -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktCallFun1 name ia = Interpret $ \scope ->
-    case interpret ia scope of
-      ha@(HiddenIO aType _) ->
-        fromJust
-          ("no function " ++ name ++ "(" ++ show aType ++ ")")
-          (sFun1 scope !? fun2key name [KtAnyType aType])
-          scope ha
-
-  ktCallFun2 :: Name -> Interpret (KtValue c) -> Interpret (KtValue c) -> Interpret (KtValue c)
-  ktCallFun2 name ia1 ia2 = Interpret $ \scope ->
-    case (interpret ia1 scope, interpret ia2 scope) of
-      (ha1@(HiddenIO a1Type _), ha2@(HiddenIO a2Type _)) ->
-        fromJust
-          ("no function " ++ name ++ "(" ++ show a1Type ++ "," ++ show a2Type ++ ")")
-          (sFun2 scope !? fun2key name [KtAnyType a1Type, KtAnyType a2Type])
-          scope ha1 ha2
+  ktCallFun :: (Console c) => Name -> [Interpret (KtValue c)] -> Interpret (KtValue c)
+  ktCallFun name iArgs = Interpret $ \scope ->
+    let (aTypes, hValues) =
+          unzip $ iArgs
+            <&> flip interpret scope
+            <&> \hv@(HiddenIO aType iov) -> (KtAnyType aType, hv) 
+     in case sFun scope !? (name, aTypes) of
+          Just fun -> fun scope hValues
+          Nothing  ->
+            interpretError $
+              "No funnction `" ++ getFunStr name aTypes ++ "` to call"
 
   ktReadVariable :: (Console c) => Name -> Interpret (KtValue c)
   ktReadVariable name = Interpret $ \scope ->
@@ -343,24 +317,31 @@ checkOnTop :: (Console c) => KtScope c -> Name -> Maybe (KtVariableInfo c)
 checkOnTop KtScope { sVariable = [] }     name = error "Scope havn't got varable area"
 checkOnTop KtScope { sVariable = vars:_ } name = vars !? name
 
-printFuns :: (Console c) => Map Name (KtFun1 c)
-printFuns = fromList
-  [ "print@i" `to` printFun1 consolePrint
-  , "print@d" `to` printFun1 consolePrint
-  , "print@s" `to` printFun1 consolePrint
-  , "print@u" `to` printFun1 consolePrint
-  , "print@b" `to` printFun1 consolePrint
+ktIO :: (Console c) => Map KtFunKey (KtFun c)
+ktIO = fromList
+  [ ("print", [KtAnyType KtIntType])    `to` printFun1 consolePrint
+  , ("print", [KtAnyType KtDoubleType]) `to` printFun1 consolePrint
+  , ("print", [KtAnyType KtStringType]) `to` printFun1 consolePrint
+  , ("print", [KtAnyType KtUnitType])   `to` printFun1 consolePrint
+  , ("print", [KtAnyType KtBoolType])   `to` printFun1 consolePrint
 
-  , "println@i" `to` printFun1 consolePrintln
-  , "println@d" `to` printFun1 consolePrintln
-  , "println@s" `to` printFun1 consolePrintln
-  , "println@u" `to` printFun1 consolePrintln
-  , "println@b" `to` printFun1 consolePrintln
+  , ("println", [KtAnyType KtIntType])    `to` printFun1 consolePrintln
+  , ("println", [KtAnyType KtDoubleType]) `to` printFun1 consolePrintln
+  , ("println", [KtAnyType KtStringType]) `to` printFun1 consolePrintln
+  , ("println", [KtAnyType KtUnitType])   `to` printFun1 consolePrintln
+  , ("println", [KtAnyType KtBoolType])   `to` printFun1 consolePrintln
+  
+  , ("readLine().toInt", []) `to` \_ [] ->
+      HiddenIO KtIntType $ read @Int <$> consoleReadLine
+  , ("readLine().toDouble", []) `to` \_ [] ->
+      HiddenIO KtDoubleType $ read @Double <$> consoleReadLine
+  , ("readLine", []) `to` \_ [] ->
+      HiddenIO KtStringType consoleReadLine
   ]
   where
     printFun1
-      :: (Console c) => (String -> c ()) -> KtScope c -> HiddenIO c -> HiddenIO c
-    printFun1 sout = \_ (HiddenIO aType iov) ->
+      :: (Console c) => (String -> c ()) -> KtScope c -> [HiddenIO c] -> HiddenIO c
+    printFun1 sout = \_ [HiddenIO aType iov] ->
       HiddenIO KtUnitType $ iov >>= \v ->
         case aType of
           KtIntType    -> sout $ show v
@@ -369,30 +350,17 @@ printFuns = fromList
           KtUnitType   -> sout "kotlin.Unit"
           KtBoolType   -> sout $ if v then "true" else "false"
 
-readFuns :: (Console c) => Map Name (KtFun0 c)
-readFuns = fromList
-  [ "readLine()!!.toInt@" `to` \_ ->
-      HiddenIO KtIntType $ read @Int <$> consoleReadLine
-  , "readLine()!!.toDouble@" `to` \_ ->
-      HiddenIO KtDoubleType $ read @Double <$> consoleReadLine
-  , "readLine@" `to` \_ ->
-      HiddenIO KtStringType consoleReadLine
-  ]
-
 interpretConstant :: (Console c, Typeable a) => KtType a -> a -> Interpret (KtValue c)
 interpretConstant aType a = Interpret $ \_ -> HiddenIO aType $ return a
 
-mkFunBody :: (Console c, Typeable r) => KtType r -> [Interpret (KtCommand c)] -> KtScope c -> HiddenIO c
-mkFunBody rType cmds funScope = HiddenIO rType $ do
-  mbResult <- foldCommands funScope rType $ interpret <$> cmds
+foldCommands :: (Console c, Typeable a) => (KtScope c) -> KtType a -> [KtCommand c] -> c a
+foldCommands scope (aType :: KtType a) cmds = do
+  mbResult <- snd <$> foldCommands' scope cmds
   case mbResult of
-    Nothing -> case rType of
+    Just r  -> return r
+    Nothing -> case aType of
       KtUnitType -> return ()
       _          -> error "Missing return"
-    Just r  -> return r
-
-foldCommands :: (Console c, Typeable a) => (KtScope c) -> KtType a -> [KtCommand c] -> c (Maybe a)
-foldCommands scope (_ :: KtType a) cmds = snd <$> foldCommands' scope cmds
   where
     foldCommands' :: (Console c) => KtScope c -> [KtCommand c] -> c (KtScope c, Maybe a)
     foldCommands' scope []         = return (scope, Nothing)
@@ -526,6 +494,22 @@ interpretBinOp predator il ir = Interpret $ \scope ->
     binError :: a
     binError = error "Invalid types of operation arguments"
 
+logicError :: String -> a
+logicError = error . ("LOGIC ERROR: " ++)
+
+interpretError :: String -> a
+interpretError = error . ("INTERPRET ERROR: " ++)
+
+withDiff :: String -> (String, String) -> String
+withDiff msg (expected, actual) =
+    msg ++ "\n"
+      ++ "Expected: " ++ expected ++ "\n"
+      ++ "Actual:   " ++ actual   ++ "\n"
+
+getFunStr :: Name -> [KtAnyType] -> String
+getFunStr name args =
+  name ++ "(" ++ (intercalate ", " $ show <$> args) ++ ")"
+
 instance Show (KtType t) where
   show :: KtType t -> String
   show = \case
@@ -542,6 +526,18 @@ infix 4 @==@
     Nothing -> False
     Just _  -> True
 
+infix 4 @<=@
+(@<=@) :: KtType a -> KtType b -> Bool
+aType @<=@ bType = show aType <= show bType
+
 instance Show KtAnyType where
   show :: KtAnyType -> String
   show (KtAnyType aType) = show aType
+
+instance Eq KtAnyType where
+  (==) :: KtAnyType -> KtAnyType -> Bool
+  KtAnyType typeL == KtAnyType typeR = typeL @==@ typeR
+
+instance Ord KtAnyType where
+  (<=) :: KtAnyType -> KtAnyType -> Bool
+  KtAnyType typeL <= KtAnyType typeR = typeL @<=@ typeR

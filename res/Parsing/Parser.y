@@ -77,22 +77,19 @@ import qualified Parsing.Utils     as U
 %%
 
 File
-  : FunDecl                                       { KT.KtPsiFile $ U.unproxyFunDec $1 }
+  : FunList                                       { KT.KtPsiFile $1 }
 
-FunDecl
-  : Fun0 FunDecl                                  {% U.putFun0Data $1 $2 }
-  | Fun1 FunDecl                                  {% U.putFun1Data $1 $2 }
-  | Fun2 FunDecl                                  {% U.putFun2Data $1 $2 }
-  |                                               {  U.emptyProxyFunDec  }
+FunList
+  : Fun FunList                                   { $1 : $2 }
+  |                                               { []      }
 
-Fun0
-  : FUN NAME '(' ')' ':' Type '{' CommandList '}'    { KT.KtPsiFun0 $2 $6 $8 }
+Fun
+  : FUN NAME '(' ArgList ')' ':' Type '{' CommandList '}'    { KT.KtPsiFun $2 $4 $7 $9 }
 
-Fun1
-  : FUN NAME '(' Arg ')' ':' Type '{' CommandList '}'    { KT.KtPsiFun1 $2 $4 $7 $9 }
-
-Fun2
-  : FUN NAME '(' Arg ',' Arg ')' ':' Type '{' CommandList '}'    { KT.KtPsiFun2 $2 $4 $6 $9 $11 }
+ArgList
+  : Arg ',' ArgList                               { $1 : $3 }
+  | Arg                                           { [$1]    }
+  |                                               { []      }
 
 Arg
   : NAME ':' Type                                 { ($1, $3) }
@@ -184,10 +181,12 @@ Target
   | Unit                                          { $1 }
 
 CallFun
-  : NAME '(' ')' '!' '!'                          { KT.KtPsiCallFun0 $1       }
-  | NAME '(' ')'                                  { KT.KtPsiCallFun0 $1       }
-  | NAME '(' Value ')'                            { KT.KtPsiCallFun1 $1 $3    }
-  | NAME '(' Value ',' Value ')'                  { KT.KtPsiCallFun2 $1 $3 $5 }
+  : NAME '(' ValueList ')'                        { KT.KtPsiCallFun $1 $3 }
+
+ValueList
+  : Value ',' ValueList                           { $1 : $3 }
+  | Value                                         { [$1]    }
+  |                                               { []      }
 
 ReadVar
   : NAME                                          { KT.KtPsiReadVariable $1 }
