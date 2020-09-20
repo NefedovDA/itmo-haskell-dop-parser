@@ -1,7 +1,6 @@
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE InstanceSigs        #-}
 {-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
 
@@ -15,7 +14,6 @@ import Data.Functor   ((<&>))
 import Data.List      (intercalate)
 import Data.Map       (Map, insert, empty, fromList, (!?))
 import Data.Maybe     (catMaybes)
-import Data.Monoid    (First(..))
 import Data.Typeable  (Typeable, (:~:)(..), eqT)
 import GHC.Float      (int2Double)
 
@@ -119,7 +117,7 @@ instance Kotlin Interpret where
 
   ktReturn :: Interpret (KtValue c) -> Interpret (KtCommand c)
   ktReturn = Interpret . KtCmdReturn . interpret
-  
+
   ktValueCommand :: (Console c) => Interpret (KtValue c) -> Interpret (KtCommand c)
   ktValueCommand iv = Interpret . KtCmdStep $ \scope ->
     case interpret iv scope of
@@ -452,7 +450,7 @@ unoOpPredator = UnoOpPredator
   { uOnInt      = UnoNotDefined
   , uOnDouble   = UnoNotDefined
   , uOnBool     = UnoNotDefined
-  } 
+  }
 
 unoOpError :: UnoOpPredator i d b -> KtType t -> a
 unoOpError predator aType = interpretError $ withDiff
@@ -575,7 +573,9 @@ interpretBinOp predator il ir = Interpret $ \scope ->
 
         tt -> binOpError predator tt
   where
-    attack :: (Console c, Typeable r) => (KtType lt, KtType rt) -> BinOperation a b r -> (c a, c b) -> HiddenIO c
+    attack
+      :: (Console c, Typeable r)
+      => (KtType lt, KtType rt) -> BinOperation a b r -> (c a, c b) -> HiddenIO c
     attack _ (BinPutOp rType f) (iol, ior) = HiddenIO rType $ liftM2 f iol ior
     attack tt BinNotDefined     _          = binOpError predator tt
 

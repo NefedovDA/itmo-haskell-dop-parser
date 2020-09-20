@@ -1,5 +1,4 @@
-{-# LANGUAGE GADTs      #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE GADTs #-}
 
 module Kotlin.Utils
   ( fun2key

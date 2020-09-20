@@ -18,6 +18,6 @@ runTests = testGroup "Test printing" $
   where
     runTest tt@TestTemplate { ttName = name, ttPrinted = expected } =
       testCase name $ runPrinter tt @?= expected
-    
+
     runPrinter :: TestTemplate -> String
     runPrinter = show . ttPsi

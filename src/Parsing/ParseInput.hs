@@ -6,13 +6,13 @@ module Parsing.ParseInput
   , parseInputStr
   ) where
 
-import Kotlin.Dsl         (Kotlin, KtFile)
-import Kotlin.Interpret   (interpret)
-import Kotlin.Printer     (Printer)
-import Parsing.KotlinPsi  (KotlinPsi, transform)
-import Parsing.Lexer      (alexScanTokens)
-import Parsing.Parser     (happyParserExpression)
-import Parsing.Result     (Result(..))
+import Kotlin.Dsl        (KtFile)
+import Kotlin.Interpret  (interpret)
+import Kotlin.Printer    (Printer)
+import Parsing.KotlinPsi (KotlinPsi, transform)
+import Parsing.Lexer     (alexScanTokens)
+import Parsing.Parser    (happyParserExpression)
+import Parsing.Result    (Result(..))
 
 parseInput :: String -> KotlinPsi (KtFile IO)
 parseInput input =

@@ -3,21 +3,20 @@
 module Kotlin.Dsl
   ( Kotlin(..)
   , Console(..)
-  
+
   , KtDeclarations
   , KtScope(..)
 
   , KtFile
 
   , KtFun
-  
+
+  , KtFunArg
   , KtFunData
   , KtFunKey
 
   , KtVariableInfo
 
-  , KtFunArg
-  
   , KtValue
 
   , Name
@@ -26,8 +25,8 @@ module Kotlin.Dsl
 
   , HiddenIO(..)
 
-  , KtType(..)
   , KtAnyType(..)
+  , KtType(..)
   ) where
 
 import Data.Map      (Map)
@@ -75,14 +74,14 @@ class Kotlin expr where
     => [(expr (KtValue c), [expr (KtCommand c)])]
     -> [expr (KtCommand c)]
     -> expr (KtCommand c)
-  
+
   ktNegate :: (Console c) => expr (KtValue c) -> expr (KtValue c)
 
   ktNot :: (Console c) => expr (KtValue c) -> expr (KtValue c)
 
   infixl 7 @*@
   (@*@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
-  
+
   infixl 7 @/@
   (@/@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 
@@ -103,10 +102,10 @@ class Kotlin expr where
 
   infixl 5 @<=@
   (@<=@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
-  
+
   infixl 4 @==@
   (@==@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
-  
+
   infixl 4 @!=@
   (@!=@) :: (Console c) => expr (KtValue c) -> expr (KtValue c) -> expr (KtValue c)
 

@@ -1,7 +1,6 @@
-{-# LANGUAGE GADTs                      #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE InstanceSigs               #-}
-{-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE GADTs        #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE LambdaCase   #-}
 
 module Kotlin.Printer
   ( Printer (..)
@@ -41,11 +40,11 @@ instance Kotlin Printer where
     getOffset offset ++ (if isConstant then "val" else "var") ++ " "
       ++ name ++ ": " ++ show vType ++ " = "
       ++ show value ++ ";"
-  
+
   ktSetVariable :: (Console c) => Name -> Printer (KtValue c) -> Printer (KtCommand c)
   ktSetVariable name value = Printer $ \offset ->
     getOffset offset ++ name ++ " = " ++ show value ++ ";"
-  
+
   ktReturn :: Printer (KtValue c) -> Printer (KtCommand c)
   ktReturn result = Printer $ \offset ->
     getOffset offset ++ "return " ++ show result ++ ";"
@@ -82,7 +81,7 @@ instance Kotlin Printer where
           ++ printCommands (succ offset) cmds
           ++ getOffset offset ++ "}\n"
           ++ getOffset offset ++ "else "
-  
+
   ktReadVariable :: (Console c) => Name -> Printer (KtValue c)
   ktReadVariable name = Printer $ \offset ->
     getOffset offset ++ name
@@ -132,19 +131,19 @@ instance Kotlin Printer where
   ktInt :: Int -> Printer (KtValue c)
   ktInt i = Printer $ \offset ->
     getOffset offset ++ show i
-  
+
   ktDouble :: Double -> Printer (KtValue c)
   ktDouble d = Printer $ \offset ->
     getOffset offset ++ show d
-  
+
   ktString :: String -> Printer (KtValue c)
   ktString s = Printer $ \offset ->
     getOffset offset ++ "\"" ++ s ++  "\""
-  
+
   ktBool :: Bool -> Printer (KtValue c)
   ktBool b = Printer $ \offset ->
     getOffset offset ++ if b then "true" else "false"
-  
+
   ktUnit :: () -> Printer (KtValue c)
   ktUnit () = Printer $ \offset ->
     getOffset offset ++ "Unit"

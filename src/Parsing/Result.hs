@@ -2,12 +2,12 @@
 
 module Parsing.Result
   ( Result(..)
-  
+
   , catchE
   , failE
   , returnE
   , thenE
-  
+
   , parseError
   ) where
 
@@ -19,7 +19,7 @@ data Result a
   deriving (Show, Eq)
 
 instance Functor Result where
-  fmap :: (a -> b) -> Result a -> Result b 
+  fmap :: (a -> b) -> Result a -> Result b
   fmap f r = case r of
     Ok a     -> Ok (f a)
     Failed b -> Failed b

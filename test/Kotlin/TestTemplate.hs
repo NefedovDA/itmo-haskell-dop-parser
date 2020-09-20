@@ -3,19 +3,17 @@
 module Kotlin.TestTemplate
   ( TestTemplate(..)
   , InterpretResult(..)
-  
+
   , HandleIO(..)
 
   , testTemplates
   ) where
 
 import System.IO (hFlush, stdout, IOMode(..), openFile, hPutStrLn, hPutStr, hGetLine, hClose)
-import Foreign.Marshal.Unsafe (unsafeLocalState)
-import Control.Exception (evaluate)
 
 import Parsing.KotlinPsi
-import Kotlin.Interpret (interpret)
-import Kotlin.Utils (to)
+import Kotlin.Interpret  (interpret)
+import Kotlin.Utils      (to)
 
 testInputFile :: String
 testInputFile = "./test-tmp-input.txt"
@@ -46,7 +44,7 @@ instance Functor HandleIO where
 instance Applicative HandleIO where
   pure :: a -> HandleIO a
   pure a = HandleIO $ \path -> pure a
-  
+
   (<*>) :: HandleIO (a -> b) -> HandleIO a -> HandleIO b
   hioF <*> hioA = HandleIO $ \path ->
     hioIO hioF path <*> hioIO hioA path
@@ -62,20 +60,20 @@ instance Console HandleIO where
     file <- openFile path AppendMode
     hPutStr file s
     hClose file
-  
+
   consolePrintln :: String -> HandleIO ()
   consolePrintln s = HandleIO $ \path -> do
     file <- openFile path AppendMode
     hPutStrLn file s
     hClose file
-  
+
   consoleReadLine :: HandleIO String
   consoleReadLine = HandleIO $ \_ -> do
     file <- openFile testInputFile ReadMode
     s <- hGetLine file
     hClose file
     return s
-  
+
 
 testTemplates :: [TestTemplate]
 testTemplates =

@@ -1,20 +1,18 @@
-{-# LANGUAGE LambdaCase #-}
-
 module Kotlin.InterpretTest
   ( testInterpret
   ) where
 
-import System.Directory (removeFile)
-import Test.Tasty       (TestTree, testGroup)
-import Test.Tasty.HUnit (Assertion, testCase, (@?=), assertFailure)
+import Control.DeepSeq   (rnf)
+import Control.Exception (evaluate, catch, SomeException)
+import System.Directory  (removeFile)
+import System.IO         (openFile, IOMode(..), hGetContents, hClose, hPutStr)
+import Test.Tasty        (TestTree, testGroup)
+import Test.Tasty.HUnit  (Assertion, testCase, (@?=), assertFailure)
 
 import Kotlin.Interpret
+import Parsing.KotlinPsi   (transform)
+
 import Kotlin.TestTemplate
-import Parsing.KotlinPsi (transform)
-import Data.Maybe (catMaybes)
-import System.IO (openFile, IOMode(..), hGetContents, hClose, hPutStr)
-import Control.Exception (evaluate, catch, SomeException)
-import Control.DeepSeq (rnf)
 
 testInterpret :: TestTree
 testInterpret = testGroup "Testing Interpreter module"

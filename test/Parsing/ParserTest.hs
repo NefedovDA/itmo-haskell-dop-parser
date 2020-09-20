@@ -1,20 +1,20 @@
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs      #-}
 {-# LANGUAGE LambdaCase #-}
 
 module Parsing.ParserTest
   ( testParser
   ) where
 
-import Data.Typeable (Typeable)
-import Test.Tasty (TestTree, testGroup)
+import Data.Functor     ((<&>))
+import Data.Typeable    (Typeable)
+import Test.Tasty       (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, testCase, (@?=))
 
 import Kotlin.Dsl
 import Kotlin.Printer
+import Kotlin.Utils       (to)
 import Parsing.KotlinPsi
 import Parsing.ParseInput (parseInput)
-import Data.Functor ((<&>))
-import Kotlin.Utils (to)
 
 testParser :: TestTree
 testParser = testGroup "Test Parser module"

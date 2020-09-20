@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs            #-}
+{-# LANGUAGE InstanceSigs     #-}
+{-# LANGUAGE LambdaCase       #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE LambdaCase #-}
 
 module Parsing.Utils
   ( addBranch
@@ -48,7 +48,7 @@ updatedString (_:str) = KtPsiString $ dropLast str
 dropLast :: [a] -> [a]
 dropLast xs = f xs (tail xs)
     where
-      f :: [a] -> [a] -> [a] 
+      f :: [a] -> [a] -> [a]
       f (x:xs) (y:ys) = x : f xs ys
       f _ _ = []
 
@@ -58,9 +58,9 @@ defaultReturn = KtPsiReturn $ KtPsiUnit ()
 instance Console IO where
   consolePrint :: String -> IO ()
   consolePrint s = putStr s >> hFlush stdout
-  
+
   consolePrintln  :: String -> IO ()
   consolePrintln = putStrLn
-  
+
   consoleReadLine :: IO String
   consoleReadLine = readLn

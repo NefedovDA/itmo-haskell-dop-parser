@@ -4,7 +4,7 @@ module Parsing.Spec
 
 import Test.Tasty (TestTree, testGroup)
 
-import Parsing.LexerTest (testLexer)
+import Parsing.LexerTest  (testLexer)
 import Parsing.ParserTest (testParser)
 
 testParsing :: TestTree

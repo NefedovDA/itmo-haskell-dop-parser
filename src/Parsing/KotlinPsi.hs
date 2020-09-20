@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE InstanceSigs        #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -13,7 +12,7 @@ module Parsing.KotlinPsi
   ) where
 
 import Data.Bifunctor (first, second)
-import Data.Typeable ((:~:)(..), eqT, Typeable)
+import Data.Typeable  ((:~:)(..), eqT, Typeable)
 
 import Kotlin.Dsl
 import Kotlin.Printer (Printer)
@@ -35,7 +34,7 @@ data KotlinPsi a where
     -> KtAnyType
     -> [KotlinPsi (KtCommand c)]
     -> KotlinPsi (KtFunData c)
-  
+
   KtPsiInitVariable
       :: (Console c)
       => Bool
@@ -43,12 +42,12 @@ data KotlinPsi a where
       -> KtAnyType
       -> KotlinPsi (KtValue c)
       -> KotlinPsi (KtCommand c)
-    
+
   KtPsiSetVariable :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
 
   KtPsiReturn :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
   KtPsiValueCommand :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
-  
+
 
   KtPsiCallFun :: (Console c) => Name -> [KotlinPsi (KtValue c)] -> KotlinPsi (KtValue c)
 
@@ -162,7 +161,7 @@ transform a = case a of
   KtPsiFile ds -> ktFile $ transform <$> ds
 
   KtPsiFun n as t cs   -> ktFun n as t $ transform <$> cs
-  
+
   KtPsiInitVariable ic n t v -> ktInitVariable ic n t $ transform v
   KtPsiSetVariable n v       -> ktSetVariable n $ transform v
   KtPsiReturn r -> ktReturn $ transform r
@@ -188,8 +187,8 @@ transform a = case a of
   lv :&&: rv -> (transform lv) @&&@ (transform rv)
   lv :||: rv -> (transform lv) @||@ (transform rv)
 
-  KtPsiInt i    -> ktInt i   
+  KtPsiInt i    -> ktInt i
   KtPsiDouble d -> ktDouble d
   KtPsiString s -> ktString s
-  KtPsiBool b   -> ktBool b  
-  KtPsiUnit ()  -> ktUnit ()  
+  KtPsiBool b   -> ktBool b
+  KtPsiUnit ()  -> ktUnit ()
