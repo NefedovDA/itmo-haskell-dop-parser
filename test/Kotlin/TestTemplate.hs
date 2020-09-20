@@ -438,6 +438,47 @@ testTemplates =
               ""
           }
       }
+  , TestTemplate
+      { ttName = "Check that not lazy"
+      , ttPsi = ktFile $
+          [ ktFun "f"
+              ["r" .: KtAnyType KtIntType]
+              (KtAnyType KtIntType)
+              [ printlnPsi $ ktReadVariable "r"
+              , ktReturn $ ktReadVariable "r" @+@ ktInt 1
+              ]
+          , mainPsi
+              [ valPsi "x" (KtAnyType KtIntType) $ ktCallFun "f" [ ktInt 1 ]
+              , printlnPsi $ ktReadVariable "x"
+              , printlnPsi $ ktCallFun "f" [ ktCallFun "f" [ ktInt 3 ] ]
+              , printlnPsi $ ktCallFun "println" [ ktBool True ]
+              ]
+          ]
+      , ttPrinted =
+          "fun f(r: Int): Int {"      ++!
+          "  println(r);"             ++!
+          "  return (r + 1);"         ++!
+          "}"                         ++!
+          ""                          ++!
+          "fun main(): Unit {"        ++!
+          "  val x: Int = f(1);"      ++!
+          "  println(x);"             ++!
+          "  println(f(f(3)));"       ++!
+          "  println(println(true));" ++!
+          "}"                         ++!
+          ""
+      , ttInterpreted = emptyResult
+          { irOutput =
+              "1"           ++!
+              "2"           ++!
+              "3"           ++!
+              "4"           ++!
+              "5"           ++!
+              "true"        ++!
+              "kotlin.Unit" ++!
+              ""
+          }
+      }
   ]
 
 scope :: (Kotlin expr, Console c) => [expr (KtCommand c)] -> expr (KtCommand c)

@@ -124,7 +124,7 @@ instance Kotlin Interpret where
       KtScope { sVariable = []     } -> logicError "Scope havn't got varable area"
       KtScope { sVariable = vars:_ } ->
         case vars !? name of
-          Nothing -> putVariableChecked isConstant name aType iValue scope
+          Nothing -> putVariableChecked 0 isConstant name aType iValue scope
           Just _  -> interpretError ("Variable `" ++ name ++ "` is alrady defined")
 
   -- | Construct reassign variable command.
@@ -135,10 +135,10 @@ instance Kotlin Interpret where
   ktSetVariable :: (Console c) => Name -> Interpret (KtValue c) -> Interpret (KtCommand c)
   ktSetVariable name iValue = Interpret . KtCmdStep $ \scope -> do
     case findVariable scope name of
-      Nothing        -> interpretError $ "Variable `" ++ name ++ "` isn't defined."
-      Just (True, _) -> interpretError $ "Variable `" ++ name ++ "` is immutable."
-      Just (False, HiddenIO aType _) ->
-        putVariableChecked False name aType iValue scope
+      Nothing             -> interpretError $ "Variable `" ++ name ++ "` isn't defined."
+      Just (_, (True, _)) -> interpretError $ "Variable `" ++ name ++ "` is immutable."
+      Just (i, (False, HiddenIO aType _)) ->
+        putVariableChecked i False name aType iValue scope
 
   -- | Construct return command.
   ktReturn :: Interpret (KtValue c) -> Interpret (KtCommand c)
@@ -177,7 +177,7 @@ instance Kotlin Interpret where
   ktReadVariable name = Interpret $ \scope ->
     case findVariable scope name of
       Nothing      -> interpretError $ "Variable `" ++ name ++ "` isn't defined."
-      Just (_, hv) -> hv
+      Just (_, (_, hv)) -> hv
 
   -- | Construct for command
   -- Could fail if:
@@ -403,23 +403,40 @@ putVariable isConstant name hv scope =
     vars:varsTail ->
       scope { sVariable = (insert name (isConstant, hv) vars) : varsTail }
 
+-- | Put variable in the indexed area. 
+putVariable_
+  :: forall c. (Console c)
+  => Int -> Bool -> Name -> HiddenIO c -> KtScope c -> KtScope c
+putVariable_ i isConstant name hv scope
+  | i < 0     = logicError "Negative index of variable area"
+  | otherwise = scope { sVariable = processArea i $ sVariable scope }
+  where
+    processArea
+      :: (Console c)
+      => Int -> [Map String (KtVariableInfo c)] -> [Map String (KtVariableInfo c)]
+    processArea _ [] = logicError "Incorrect index of variable area"
+    processArea i (area:areas)
+      | i == 0 = (insert name (isConstant, hv) area) : areas
+      | otherwise = area : processArea (pred i) areas
+
 -- | Check that type of given value the same as given type
 -- and then put it if all are okay.
 putVariableChecked
   :: (Console c)
-  => Bool
+  => Int
+  -> Bool
   -> Name
   -> KtType t
   -> Interpret (KtValue c)
   -> KtScope c
   -> c (KtScope c)
-putVariableChecked isConstant name aType iValue scope =
+putVariableChecked i isConstant name aType iValue scope =
   case interpret iValue scope of
     HiddenIO vType iov
       | typeId vType == typeId aType -> do
           v <- iov  -- Support non-lazy behavior
           let hv = HiddenIO vType $ return v
-          return $ putVariable isConstant name hv scope
+          return $ putVariable_ i isConstant name hv scope
       | otherwise -> interpretError $ withDiff
           "Initial value has incorrect type"
           ( show aType
@@ -429,15 +446,15 @@ putVariableChecked isConstant name aType iValue scope =
 -- | Find variable with given name.
 -- If in different scopes variables with the same name are presented,
 -- will return information about the nearest.
-findVariable :: (Console c) => KtScope c -> Name -> Maybe (KtVariableInfo c)
-findVariable KtScope { sVariable = varsArea } name = processAreas varsArea
+findVariable :: (Console c) => KtScope c -> Name -> Maybe (Int, KtVariableInfo c)
+findVariable KtScope { sVariable = varsArea } name = processAreas 0 varsArea
   where
-    processAreas :: [Map String (KtVariableInfo c)] -> Maybe (KtVariableInfo c)
-    processAreas []              = Nothing
-    processAreas (vars:varsTail) =
+    processAreas :: Int -> [Map String (KtVariableInfo c)] -> Maybe (Int, KtVariableInfo c)
+    processAreas _ []              = Nothing
+    processAreas i (vars:varsTail) =
       case vars !? name of
-        Just vi -> Just vi
-        Nothing -> processAreas varsTail
+        Just vi -> Just (i, vi)
+        Nothing -> processAreas (succ i) varsTail
 
 -- | Interpret function body.
 foldCommands
