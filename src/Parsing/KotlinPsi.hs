@@ -12,7 +12,7 @@ module Parsing.KotlinPsi
   ) where
 
 import Data.Bifunctor (first, second)
-import Data.Typeable  ((:~:)(..), eqT, Typeable)
+import Data.Typeable  (eqT)
 
 import Kotlin.Dsl
 import Kotlin.Printer (Printer)
@@ -24,6 +24,8 @@ infixl 4 :==:, :!=:
 infixl 3 :&&:
 infixl 2 :||:
 
+-- | Proxy data type for use it in Happy.
+-- Has the same construction as 'Kotlin'.
 data KotlinPsi a where
   KtPsiFile :: (Console c) => KtDeclarations KotlinPsi c -> KotlinPsi (KtFile c)
 
@@ -42,17 +44,9 @@ data KotlinPsi a where
       -> KtAnyType
       -> KotlinPsi (KtValue c)
       -> KotlinPsi (KtCommand c)
-
   KtPsiSetVariable :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
-
   KtPsiReturn :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
   KtPsiValueCommand :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
-
-
-  KtPsiCallFun :: (Console c) => Name -> [KotlinPsi (KtValue c)] -> KotlinPsi (KtValue c)
-
-  KtPsiReadVariable :: (Console c) => Name -> KotlinPsi (KtValue c)
-
   KtPsiFor
       :: (Console c)
       => Name
@@ -60,15 +54,17 @@ data KotlinPsi a where
       -> KotlinPsi (KtValue c)
       -> [KotlinPsi (KtCommand c)]
       -> KotlinPsi (KtCommand c)
-
   KtPsiIf
     :: (Console c)
     => [(KotlinPsi (KtValue c), [KotlinPsi (KtCommand c)])]
     -> [KotlinPsi (KtCommand c)]
     -> KotlinPsi (KtCommand c)
 
+  KtPsiCallFun :: (Console c) => Name -> [KotlinPsi (KtValue c)] -> KotlinPsi (KtValue c)
+  KtPsiReadVariable :: (Console c) => Name -> KotlinPsi (KtValue c)
+
   KtPsiNegate :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
-  KtPsiNot :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
+  KtPsiNot    :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
 
   (:*:)  :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
   (:/:)  :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
@@ -83,11 +79,11 @@ data KotlinPsi a where
   (:&&:) :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
   (:||:) :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c)
 
-  KtPsiInt :: (Console c) => Int -> KotlinPsi (KtValue c)
+  KtPsiInt    :: (Console c) => Int    -> KotlinPsi (KtValue c)
   KtPsiDouble :: (Console c) => Double -> KotlinPsi (KtValue c)
   KtPsiString :: (Console c) => String -> KotlinPsi (KtValue c)
-  KtPsiBool :: (Console c) => Bool -> KotlinPsi (KtValue c)
-  KtPsiUnit :: (Console c) => () -> KotlinPsi (KtValue c)
+  KtPsiBool   :: (Console c) => Bool   -> KotlinPsi (KtValue c)
+  KtPsiUnit   :: (Console c) => ()     -> KotlinPsi (KtValue c)
 
 instance Eq KtAnyType where
   (==) :: KtAnyType -> KtAnyType -> Bool
@@ -156,6 +152,7 @@ instance Show (KotlinPsi a) where
   show :: KotlinPsi a -> String
   show = show . transform @Printer
 
+-- | Transform KotlinPsi to the any Kotlin instance.
 transform :: Kotlin expr => KotlinPsi a -> expr a
 transform a = case a of
   KtPsiFile ds -> ktFile $ transform <$> ds
@@ -166,10 +163,11 @@ transform a = case a of
   KtPsiSetVariable n v       -> ktSetVariable n $ transform v
   KtPsiReturn r -> ktReturn $ transform r
   KtPsiValueCommand r -> ktValueCommand $ transform r
-  KtPsiCallFun n as -> ktCallFun n $ transform <$> as
-  KtPsiReadVariable n  -> ktReadVariable n
   KtPsiFor n f t cs -> ktFor n (transform f) (transform t) (transform <$> cs)
   KtPsiIf bs eb -> ktIf (first transform . second (transform <$>) <$> bs) (transform <$> eb)
+
+  KtPsiCallFun n as -> ktCallFun n $ transform <$> as
+  KtPsiReadVariable n  -> ktReadVariable n
 
   KtPsiNot v    -> ktNot $ transform v
   KtPsiNegate v -> ktNegate $ transform v

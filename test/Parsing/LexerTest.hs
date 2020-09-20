@@ -7,6 +7,7 @@ import Test.Tasty.HUnit (Assertion, testCase, (@?=))
 
 import Parsing.Lexer
 
+-- | Test group of the Parsing.Lexer module.
 testLexer :: TestTree
 testLexer = testGroup "Test Lexer module"
   [ testKeys
@@ -118,8 +119,8 @@ testComments = testGroup "Test lexing comments"
 
 testSpecificFunctions :: TestTree
 testSpecificFunctions = testGroup "Test lexing words"
-  [ testCase "Lexing name 'readLine()!!.toInt'"
-      $ checkSingleTokenLexing "readLine()!!.toInt" Name
-  , testCase "Lexing name 'readLine()!!.toDouble'"
-      $ checkSingleTokenLexing "readLine()!!.toDouble" Name
+  [ testCase "Lexing name 'readLine().toInt'"
+      $ checkSingleTokenLexing "readLine().toInt" Name
+  , testCase "Lexing name 'readLine().toDouble'"
+      $ checkSingleTokenLexing "readLine().toDouble" Name
   ]

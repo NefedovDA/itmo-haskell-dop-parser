@@ -7,27 +7,29 @@ module Kotlin.TestTemplate
   , HandleIO(..)
 
   , testTemplates
+
+  , (.:)
   ) where
 
-import System.IO (hFlush, stdout, IOMode(..), openFile, hPutStrLn, hPutStr, hGetLine, hClose)
+import System.IO (IOMode(..), openFile, hPutStrLn, hPutStr, hGetLine, hClose)
 
 import Parsing.KotlinPsi
-import Kotlin.Interpret  (interpret)
-import Kotlin.Utils      (to)
 
 testInputFile :: String
 testInputFile = "./test-tmp-input.txt"
 
-data TestTemplate = TestTemplate
-  { ttName        :: String
-  , ttPsi         :: KotlinPsi (KtFile HandleIO)
-  , ttPrinted     :: String
-  , ttInterpreted :: InterpretResult
+-- | Description of the test data
+data TestTemplate expr = TestTemplate
+  { ttName        :: String                  -- ^ name
+  , ttPsi         :: expr (KtFile HandleIO)  -- ^ psi structure
+  , ttPrinted     :: String                  -- ^ expected formatted code
+  , ttInterpreted :: InterpretResult         -- ^ expected result of execution
   }
 
+-- | Description a result of the test run
 data InterpretResult = InterpretResult
-  { irErrors :: String
-  , irOutput :: String
+  { irErrors :: String  -- ^ expected error message
+  , irOutput :: String  -- ^ expected output
   }
 
 emptyResult = InterpretResult
@@ -35,7 +37,12 @@ emptyResult = InterpretResult
   , irOutput = ""
   }
 
-data HandleIO a = HandleIO { hioIO :: FilePath -> IO a }
+-- | IO wrapper to transfer output to the file.
+data HandleIO a = HandleIO
+  { hioIO
+      :: FilePath  -- ^ Path to the output file
+      -> IO a      -- ^ Real IO
+  }
 
 instance Functor HandleIO where
   fmap :: (a -> b) -> HandleIO a -> HandleIO b
@@ -74,20 +81,19 @@ instance Console HandleIO where
     hClose file
     return s
 
-
-testTemplates :: [TestTemplate]
+-- | List of the test templates.
+testTemplates :: (Kotlin expr) => [TestTemplate expr]
 testTemplates =
   [ TestTemplate
       { ttName = "Empty file"
-      , ttPsi = KtPsiFile []
+      , ttPsi = ktFile []
       , ttPrinted = ""
-      , ttInterpreted =
-          emptyResult
-            { irErrors = "INTERPRET ERROR: No funnction `main()` to call" }
+      , ttInterpreted = emptyResult
+          { irErrors = "INTERPRET ERROR: No funnction `main()` to call" }
       }
   , TestTemplate
       { ttName = "Simple main"
-      , ttPsi = KtPsiFile $
+      , ttPsi = ktFile $
           [ mainPsi [] ]
       , ttPrinted =
           "fun main(): Unit {" ++!
@@ -97,8 +103,8 @@ testTemplates =
       }
   , TestTemplate
       { ttName = "Main with return"
-      , ttPsi = KtPsiFile $
-          [ mainPsi [ KtPsiReturn $ KtPsiUnit () ] ]
+      , ttPsi = ktFile $
+          [ mainPsi [ ktReturn $ ktUnit () ] ]
       , ttPrinted =
           "fun main(): Unit {" ++!
           "  return Unit;"     ++!
@@ -108,11 +114,11 @@ testTemplates =
       }
   , TestTemplate
       { ttName = "Main with several return"
-      , ttPsi = KtPsiFile $
+      , ttPsi = ktFile $
           [ mainPsi
-              [ KtPsiReturn $ KtPsiUnit ()
-              , KtPsiReturn $ KtPsiUnit ()
-              , KtPsiReturn $ KtPsiUnit ()
+              [ ktReturn $ ktUnit ()
+              , ktReturn $ ktUnit ()
+              , ktReturn $ ktUnit ()
               ]
           ]
       , ttPrinted =
@@ -126,14 +132,14 @@ testTemplates =
       }
   , TestTemplate
       { ttName = "Print statements"
-      , ttPsi = KtPsiFile $
+      , ttPsi = ktFile $
           [ mainPsi
-              [ printlnPsi $ KtPsiInt    1
-              , printlnPsi $ KtPsiDouble 1.0
-              , printlnPsi $ KtPsiString "s"
-              , printlnPsi $ KtPsiBool   True
-              , printlnPsi $ KtPsiBool   False
-              , printlnPsi $ KtPsiUnit   ()
+              [ printlnPsi $ ktInt    1
+              , printlnPsi $ ktDouble 1.0
+              , printlnPsi $ ktString "s"
+              , printlnPsi $ ktBool   True
+              , printlnPsi $ ktBool   False
+              , printlnPsi $ ktUnit   ()
               ]
           ]
       , ttPrinted =
@@ -146,54 +152,53 @@ testTemplates =
           "  println(Unit);"   ++!
           "}"                  ++!
           ""
-      , ttInterpreted =
-          emptyResult
-            { irOutput =
-                "1"           ++!
-                "1.0"         ++!
-                "s"           ++!
-                "true"        ++!
-                "false"       ++!
-                "kotlin.Unit" ++!
-                ""
+      , ttInterpreted = emptyResult
+          { irOutput =
+              "1"           ++!
+              "1.0"         ++!
+              "s"           ++!
+              "true"        ++!
+              "false"       ++!
+              "kotlin.Unit" ++!
+              ""
           }
       }
   , TestTemplate
       { ttName = "Call functions"
-      , ttPsi = KtPsiFile $
+      , ttPsi = ktFile $
           [ unitFunPsi "f0"
-              [ printlnPsi $ psi's "from f0():" ]
+              [ printlnPsi $ ktString "from f0():" ]
           , mainPsi
-              [ printlnPsi $ psi's "from main():"
-              , callFun0Psi "f0"
-              , callFun1Psi "f1" psi'1
-              , callFun1Psi "f1" (KtPsiBool True)
-              , callFun2Psi "f2" psi'1 psi'2
+              [ printlnPsi $ ktString "from main():"
+              , callFunPsi "f0" []
+              , callFunPsi "f1" [ktInt 1]
+              , callFunPsi "f1" [ktBool True]
+              , callFunPsi "f2" [ktInt 1, ktInt 2]
               ]
-          , KtPsiFun "f1"
-              [ "a" `to` KtAnyType KtIntType ]
+          , ktFun "f1"
+              [ "a" .: KtAnyType KtIntType ]
               (KtAnyType KtUnitType)
-              [ printlnPsi $ psi's "from f1(Int):"
-              , printPsi   $ psi's "  a: "
-              , printlnPsi $ KtPsiReadVariable "a"
+              [ printlnPsi $ ktString "from f1(Int):"
+              , printPsi   $ ktString "  a: "
+              , printlnPsi $ ktReadVariable "a"
               ]
-          , KtPsiFun "f1"
-              [ "a" `to` KtAnyType KtBoolType ]
+          , ktFun "f1"
+              [ "a" .: KtAnyType KtBoolType ]
               (KtAnyType KtUnitType)
-              [ printlnPsi $ psi's "from f1(Bool):"
-              , printPsi   $ psi's "  a: "
-              , printlnPsi $ KtPsiReadVariable "a"
+              [ printlnPsi $ ktString "from f1(Bool):"
+              , printPsi   $ ktString "  a: "
+              , printlnPsi $ ktReadVariable "a"
               ]
-          , KtPsiFun "f2"
-              [ "a1" `to` KtAnyType KtIntType
-              , "a2" `to` KtAnyType KtIntType
+          , ktFun "f2"
+              [ "a1" .: KtAnyType KtIntType
+              , "a2" .: KtAnyType KtIntType
               ]
               (KtAnyType KtUnitType)
-              [ printlnPsi $ psi's "from f2(Int, Int):"
-              , printPsi   $ psi's "  a1: "
-              , printlnPsi $ KtPsiReadVariable "a1"
-              , printPsi   $ psi's "  a2: "
-              , printlnPsi $ KtPsiReadVariable "a2"
+              [ printlnPsi $ ktString "from f2(Int, Int):"
+              , printPsi   $ ktString "  a1: "
+              , printlnPsi $ ktReadVariable "a1"
+              , printPsi   $ ktString "  a2: "
+              , printlnPsi $ ktReadVariable "a2"
               ]
           ]
       , ttPrinted =
@@ -229,35 +234,34 @@ testTemplates =
           "  println(a2);"                     ++!
           "}"                                  ++!
           ""
-      , ttInterpreted =
-          emptyResult
-            { irOutput =
-                "from main():"       ++!
-                "from f0():"         ++!
-                "from f1(Int):"      ++!
-                "  a: 1"             ++!
-                "from f1(Bool):"     ++!
-                "  a: true"          ++!
-                "from f2(Int, Int):" ++!
-                "  a1: 1"            ++!
-                "  a2: 2"            ++!
-                ""
-            }
+      , ttInterpreted = emptyResult
+          { irOutput =
+              "from main():"       ++!
+              "from f0():"         ++!
+              "from f1(Int):"      ++!
+              "  a: 1"             ++!
+              "from f1(Bool):"     ++!
+              "  a: true"          ++!
+              "from f2(Int, Int):" ++!
+              "  a1: 1"            ++!
+              "  a2: 2"            ++!
+              ""
+          }
       }
   , TestTemplate
       { ttName = "Work with variables"
-      , ttPsi = KtPsiFile $
+      , ttPsi = ktFile $
           [ mainPsi
-              [ valPsi "s" (KtAnyType KtStringType) (psi's "left>" :+: psi's "<right")
-              , printlnPsi (KtPsiReadVariable "s")
-              , varPsi "i" (KtAnyType KtIntType) psi'1
-              , printlnPsi (KtPsiReadVariable "i")
-              , KtPsiSetVariable "i"
-                  ( KtPsiReadVariable "i" :+:
-                    KtPsiReadVariable "i" :+:
-                    KtPsiReadVariable "i"
-                  )
-              , printlnPsi (KtPsiReadVariable "i")
+              [ valPsi "s" (KtAnyType KtStringType) $
+                  ktString "left>" @+@ ktString "<right"
+              , printlnPsi $ ktReadVariable "s"
+              , varPsi "i" (KtAnyType KtIntType) $ ktInt 1
+              , printlnPsi $ ktReadVariable "i"
+              , ktSetVariable "i" $
+                  ktReadVariable "i" @+@
+                  ktReadVariable "i" @+@
+                  ktReadVariable "i"
+              , printlnPsi $ ktReadVariable "i"
               ]
           ]
       , ttPrinted =
@@ -271,29 +275,28 @@ testTemplates =
           "  println(i);"                  ++!
           "}"                              ++!
           ""
-      , ttInterpreted =
-          emptyResult
-            { irOutput =
-              "left><right" ++!
-              "1"           ++!
-              "3"           ++!
-              ""
-            }
+      , ttInterpreted = emptyResult
+          { irOutput =
+            "left><right" ++!
+            "1"           ++!
+            "3"           ++!
+            ""
+          }
       }
   , TestTemplate
       { ttName = "For & If"
-      , ttPsi = KtPsiFile $
+      , ttPsi = ktFile $
           [ mainPsi
-              [ KtPsiFor "i" psi'1 (KtPsiInt 10)
-                  [ printPsi (KtPsiReadVariable "i")
-                  , printPsi (psi's " is ")
-                  , KtPsiIf
-                      [ ( KtPsiReadVariable "i" :/: psi'2 :*: psi'2
-                            :==: KtPsiReadVariable "i"
-                        , [ printlnPsi (psi's "even") ]
+              [ ktFor "i" (ktInt 1) (ktInt 10)
+                  [ printPsi $ ktReadVariable "i"
+                  , printPsi $ ktString " is "
+                  , ktIf
+                      [ ( ktReadVariable "i" @/@ ktInt 2 @*@ ktInt 2
+                            @==@ ktReadVariable "i"
+                        , [ printlnPsi $ ktString "even" ]
                         )
                       ]
-                      [ printlnPsi (psi's "odd") ]
+                      [ printlnPsi $ ktString "odd" ]
                   ]
               ]
           ]
@@ -311,62 +314,165 @@ testTemplates =
           "  }"                             ++!
           "}"                               ++!
           ""
-      , ttInterpreted =
-          emptyResult
-            { irOutput =
-                "1 is odd"   ++!
-                "2 is even"  ++!
-                "3 is odd"   ++!
-                "4 is even"  ++!
-                "5 is odd"   ++!
-                "6 is even"  ++!
-                "7 is odd"   ++!
-                "8 is even"  ++!
-                "9 is odd"   ++!
-                "10 is even" ++!
-                ""
-            }
+      , ttInterpreted = emptyResult
+          { irOutput =
+              "1 is odd"   ++!
+              "2 is even"  ++!
+              "3 is odd"   ++!
+              "4 is even"  ++!
+              "5 is odd"   ++!
+              "6 is even"  ++!
+              "7 is odd"   ++!
+              "8 is even"  ++!
+              "9 is odd"   ++!
+              "10 is even" ++!
+              ""
+          }
+      }
+  , TestTemplate
+      { ttName = "Variable areas"
+      , ttPsi = ktFile $
+          [ mainPsi
+              [ valPsi "i" (KtAnyType KtIntType) $ ktInt 1
+              , valPsi "a" (KtAnyType KtIntType) $ ktInt 0
+              , scope
+                  [ printlnPsi $ ktReadVariable "i"
+                  , printlnPsi $ ktReadVariable "a"
+                  , valPsi "i" (KtAnyType KtStringType) $ ktString "sss"
+                  , scope
+                      [ printlnPsi $ ktReadVariable "i"
+                      , printlnPsi $ ktReadVariable "a"
+                      ]
+                  ]
+              ]
+          ]
+      , ttPrinted =
+          "fun main(): Unit {"           ++!
+          "  val i: Int = 1;"            ++!
+          "  val a: Int = 0;"            ++!
+          "  if (true) {"                ++!
+          "    println(i);"              ++!
+          "    println(a);"              ++!
+          "    val i: String = \"sss\";" ++!
+          "    if (true) {"              ++!
+          "      println(i);"            ++!
+          "      println(a);"            ++!
+          "    }"                        ++!
+          "    else {"                   ++!
+          "    }"                        ++!
+          "  }"                          ++!
+          "  else {"                     ++!
+          "  }"                          ++!
+          "}"                            ++!
+          ""
+      , ttInterpreted = emptyResult
+          { irOutput =
+              "1"   ++!
+              "0"   ++!
+              "sss" ++!
+              "0"   ++!
+              ""
+          }
+      }
+  , TestTemplate
+      { ttName = "Bad access"
+      , ttPsi = ktFile $
+          [ unitFunPsi "f"
+              [ printlnPsi $ ktReadVariable "x" ]
+          , mainPsi
+              [ valPsi "x" (KtAnyType KtIntType) $ ktInt 10
+              , callFunPsi "f" []
+              ]
+          ]
+      , ttPrinted =
+          "fun f(): Unit {"    ++!
+          "  println(x);"      ++!
+          "}"                  ++!
+          ""                   ++!
+          "fun main(): Unit {" ++!
+          "  val x: Int = 10;" ++!
+          "  f();"             ++!
+          "}"                  ++!
+          ""
+      , ttInterpreted = emptyResult
+          { irErrors = "INTERPRET ERROR: Variable `x` isn't defined." }
+      }
+  , TestTemplate
+      { ttName = "Changing variables"
+      , ttPsi = ktFile $
+          [ mainPsi
+              [ varPsi "x" (KtAnyType KtIntType) $ ktInt 0
+              , printlnPsi $ ktReadVariable "x"
+              , ktSetVariable "x" $ ktInt 5
+              , printlnPsi $ ktReadVariable "x"
+              , ktFor "i" (ktInt 1) (ktInt 5)
+                  [ ktSetVariable "x" $ ktReadVariable "x" @+@ ktInt 1
+                  , printlnPsi $ ktReadVariable "x"
+                  ]
+              , printlnPsi $ ktReadVariable "x"
+              ]
+          ]
+      , ttPrinted =
+          "fun main(): Unit {"  ++!
+          "  var x: Int = 0;"   ++!
+          "  println(x);"       ++!
+          "  x = 5;"            ++!
+          "  println(x);"       ++!
+          "  for (i in 1..5) {" ++!
+          "    x = (x + 1);"    ++!
+          "    println(x);"     ++!
+          "  }"                 ++!
+          "  println(x);"       ++!
+          "}"                   ++!
+          ""
+      , ttInterpreted = emptyResult
+          { irOutput =
+              "0"  ++!
+              "5"  ++!
+              "6"  ++!
+              "7"  ++!
+              "8"  ++!
+              "9"  ++!
+              "10" ++!
+              "10" ++!
+              ""
+          }
       }
   ]
 
-psi'1 :: (Console c) => KotlinPsi (KtValue c)
-psi'1 = KtPsiInt 1
+scope :: (Kotlin expr, Console c) => [expr (KtCommand c)] -> expr (KtCommand c)
+scope cmds = ktIf [ ktBool True .: cmds] []
 
-psi'2 :: (Console c) => KotlinPsi (KtValue c)
-psi'2 = KtPsiInt 2
+valPsi
+  :: (Kotlin expr, Console c)
+  => Name -> KtAnyType -> expr (KtValue c) -> expr (KtCommand c)
+valPsi = ktInitVariable True
 
-psi's :: (Console c) => String -> KotlinPsi (KtValue c)
-psi's = KtPsiString
+varPsi
+  :: (Kotlin expr, Console c)
+  => Name -> KtAnyType -> expr (KtValue c) -> expr (KtCommand c)
+varPsi = ktInitVariable False
 
-valPsi :: (Console c) => Name -> KtAnyType -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
-valPsi = KtPsiInitVariable True
+unitFunPsi :: (Kotlin expr, Console c) => Name -> [expr (KtCommand c)] -> expr (KtFunData c)
+unitFunPsi name = ktFun name [] (KtAnyType KtUnitType)
 
-varPsi :: (Console c) => Name -> KtAnyType -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
-varPsi = KtPsiInitVariable False
-
-unitFunPsi :: (Console c) => Name -> [KotlinPsi (KtCommand c)] -> KotlinPsi (KtFunData c)
-unitFunPsi name = KtPsiFun name [] (KtAnyType KtUnitType)
-
-mainPsi :: (Console c) => [KotlinPsi (KtCommand c)] -> KotlinPsi (KtFunData c)
+mainPsi :: (Kotlin expr, Console c) => [expr (KtCommand c)] -> expr (KtFunData c)
 mainPsi = unitFunPsi "main"
 
-callFun0Psi :: (Console c) => Name -> KotlinPsi (KtCommand c)
-callFun0Psi n = KtPsiValueCommand $ KtPsiCallFun n []
+callFunPsi :: (Kotlin expr, Console c) => Name -> [expr (KtValue c)] -> expr (KtCommand c)
+callFunPsi n as = ktValueCommand $ ktCallFun n as
 
-callFun1Psi :: (Console c) => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
-callFun1Psi n a = KtPsiValueCommand $ KtPsiCallFun n [a]
+printPsi :: (Kotlin expr, Console c) => expr (KtValue c) -> expr (KtCommand c)
+printPsi a = callFunPsi "print" [a]
 
-callFun2Psi
-  :: (Console c)
-  => Name -> KotlinPsi (KtValue c) -> KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
-callFun2Psi n a1 a2 = KtPsiValueCommand $ KtPsiCallFun n [a1, a2]
-
-printPsi :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
-printPsi = callFun1Psi "print"
-
-printlnPsi :: (Console c) => KotlinPsi (KtValue c) -> KotlinPsi (KtCommand c)
-printlnPsi = callFun1Psi "println"
+printlnPsi :: (Kotlin expr, Console c) => expr (KtValue c) -> expr (KtCommand c)
+printlnPsi a = callFunPsi "println" [a]
 
 infixr 5  ++!
 (++!) :: String -> String -> String
 prefix ++! suffix = prefix ++ "\n" ++ suffix
+
+-- | Idiomatic binding of (,) to use it as infix operator.
+infix 1 .:
+(.:) :: a -> b -> (a, b)
+(.:) = (,)

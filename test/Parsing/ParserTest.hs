@@ -12,10 +12,12 @@ import Test.Tasty.HUnit (Assertion, testCase, (@?=))
 
 import Kotlin.Dsl
 import Kotlin.Printer
-import Kotlin.Utils       (to)
 import Parsing.KotlinPsi
 import Parsing.ParseInput (parseInput)
 
+import Kotlin.TestTemplate ((.:))
+
+-- | Test group of Parsing.Parser module.
 testParser :: TestTree
 testParser = testGroup "Test Parser module"
   [ runTests
@@ -63,12 +65,12 @@ testTemplates =
               (KtAnyType KtUnitType)
               []
           , KtPsiFun "g"
-              ["a" `to` KtAnyType KtIntType ]
+              ["a" .: KtAnyType KtIntType ]
               (KtAnyType KtUnitType)
               []
           , KtPsiFun "h"
-              [ "a" `to` KtAnyType KtStringType
-              , "b" `to` KtAnyType KtDoubleType
+              [ "a" .: KtAnyType KtStringType
+              , "b" .: KtAnyType KtDoubleType
               ]
               (KtAnyType KtUnitType)
               []

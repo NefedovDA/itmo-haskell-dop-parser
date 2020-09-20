@@ -10,12 +10,19 @@ import Data.List (intercalate)
 
 import Kotlin.Dsl
 
-newtype Printer a = Printer { runPrint :: Int -> String }
+-- | Type for format-print some code.
+newtype Printer a = Printer
+  { runPrint
+      :: Int     -- ^ Offset level.
+      -> String  -- ^ String representation of @a@.
+  }
 
+-- | @show@ === @runPrint@ with zero offset.
 instance Show (Printer a) where
   show :: Printer a -> String
   show = flipPrint 0
 
+-- | Specification how Kotlin should be format-printed.
 instance Kotlin Printer where
   ktFile :: KtDeclarations Printer c -> Printer (KtFile c)
   ktFile fnDecl = Printer $ \offset ->
@@ -27,8 +34,15 @@ instance Kotlin Printer where
     -> KtAnyType
     -> [Printer (KtCommand c)]
     -> Printer (KtFunData c)
-  ktFun name args rType cmds =
-    printKtFun name args rType cmds
+  ktFun name args rType cmds = Printer $ \offset ->
+    getOffset offset ++ "fun " ++ name
+      ++ "(" ++ (intercalate ", " $ showArg <$> args) ++ "): "
+      ++ show rType ++ " {\n"
+      ++ printCommands (succ offset) cmds
+      ++ getOffset offset ++ "}\n"
+    where
+      showArg :: KtFunArg -> String
+      showArg (name, aType) = name ++ ": " ++ show aType
 
   ktInitVariable
     :: Bool
@@ -54,7 +68,8 @@ instance Kotlin Printer where
     flipPrint offset v ++ ";"
 
   ktCallFun :: Name -> [Printer (KtValue c)] -> Printer (KtValue c)
-  ktCallFun name args = printCallFun name args
+  ktCallFun name args = Printer $ \offset ->
+    getOffset offset ++ name ++ "(" ++ (intercalate ", " $ show <$> args) ++ ")"
 
   ktFor
     :: Name
@@ -161,39 +176,25 @@ instance Show KtAnyType where
   show :: KtAnyType -> String
   show (KtAnyType ktType) = show ktType
 
+-- | Binding for @flip runPrint@.
 flipPrint :: Int -> Printer a -> String
 flipPrint = flip runPrint
 
+-- | Return string offset of given level.
 getOffset :: Int -> String
 getOffset offset = take (offset * 2) $ repeat ' '
 
+-- | Print list of commands with given offset level.
 printCommands :: Int -> [Printer (KtCommand c)] -> String
 printCommands offset cmds =
   foldMap (\p -> flipPrint offset p ++ "\n") cmds
 
-printKtFun
-  :: Name
-  -> [KtFunArg]
-  -> KtAnyType
-  -> [Printer (KtCommand c)]
-  -> Printer (KtFunData fun)
-printKtFun name args rType cmds = Printer $ \offset ->
-  getOffset offset ++ "fun " ++ name ++ "(" ++ (intercalate ", " $ showArg <$> args) ++ "): "
-    ++ show rType ++ " {\n"
-    ++ printCommands (succ offset) cmds
-    ++ getOffset offset ++ "}\n"
-  where
-    showArg :: KtFunArg -> String
-    showArg (name, aType) = name ++ ": " ++ show aType
-
+-- | Specify printing unary operations.
 printUnoOp :: Name -> Printer a -> Printer b
 printUnoOp opName iv = Printer $ \offset ->
   getOffset offset ++ opName ++ show iv
 
+-- | Specify printing binary operations.
 printBinOp :: Name -> Printer a -> Printer b -> Printer c
 printBinOp opName ivl ivr = Printer $ \offset ->
   getOffset offset ++ "(" ++ show ivl ++ " " ++ opName ++ " " ++ show ivr ++ ")"
-
-printCallFun :: Name -> [Printer a] -> Printer b
-printCallFun name args = Printer $ \offset ->
-  getOffset offset ++ name ++ "(" ++ (intercalate ", " $ show <$> args) ++ ")"

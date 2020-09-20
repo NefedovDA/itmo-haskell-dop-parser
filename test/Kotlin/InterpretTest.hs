@@ -10,10 +10,10 @@ import Test.Tasty        (TestTree, testGroup)
 import Test.Tasty.HUnit  (Assertion, testCase, (@?=), assertFailure)
 
 import Kotlin.Interpret
-import Parsing.KotlinPsi   (transform)
 
 import Kotlin.TestTemplate
 
+-- | Test group of the Kotlin.Interpret module.
 testInterpret :: TestTree
 testInterpret = testGroup "Testing Interpreter module"
   [ runTests
@@ -23,7 +23,7 @@ runTests :: TestTree
 runTests = testGroup "Test interpreting" $
   runTest <$> testTemplates
   where
-    runTest :: TestTemplate -> TestTree
+    runTest :: TestTemplate Interpret -> TestTree
     runTest
       tt@TestTemplate
         { ttName = name
@@ -48,5 +48,5 @@ runTests = testGroup "Test interpreting" $
         removeFile path
         s @?= output
 
-    runInterpret :: TestTemplate -> String -> IO ()
-    runInterpret tt = hioIO . interpret . transform $ ttPsi tt
+    runInterpret :: TestTemplate Interpret -> String -> IO ()
+    runInterpret = hioIO . interpret . ttPsi

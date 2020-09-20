@@ -44,8 +44,8 @@ tokens :-
     Bool                                        { tok TypeBool   }
     String                                      { tok TypeString }
 
-    readLine\(\)\!\!\.toInt                     { tok Name }
-    readLine\(\)\!\!\.toDouble                  { tok Name }
+    readLine\(\).toInt                          { tok Name }
+    readLine\(\).toDouble                       { tok Name }
 
     [$alpha][$alpha $digit]*                    { tok Name }
 
@@ -86,9 +86,11 @@ tokens :-
 
 {
 
+-- | Simplify creation of the token from the string
 tok :: TokenType -> AlexPosn -> String -> Token
 tok t p s = Token t p s
 
+-- | Token types
 data TokenType
   = OCBracket
   | CCBracket
@@ -133,10 +135,11 @@ data TokenType
   | Lte
   deriving (Show, Eq)
 
+-- | Token representation.
 data Token = Token
-  { tType     :: TokenType
-  , tPosition :: AlexPosn
-  , tValue    :: String
+  { tType     :: TokenType  -- ^ Type of the token.
+  , tPosition :: AlexPosn   -- ^ Token position.
+  , tValue    :: String     -- ^ String value of the token.
   } deriving (Show, Eq)
 
 }

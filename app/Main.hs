@@ -4,20 +4,24 @@ module Main
  ( main
  ) where
 
-import Options.Applicative
-import System.IO           (openFile, IOMode(ReadMode), hGetContents, hClose)
+import           Options.Applicative (Parser, (<**>))
+import qualified Options.Applicative as O
+import           System.IO           (openFile, IOMode(ReadMode), hGetContents, hClose)
 
 import Parsing.ParseInput (parseInputStr, parseInputExe)
 
+-- | Entry point of the application
 main :: IO ()
-main = runner =<< execParser opts
+main = runner =<< O.execParser opts
   where
-    opts = info (sample <**> helper)
-      ( fullDesc
-     <> progDesc "Interpret and format target kotlin file"
-     <> header "Kotlin eDSL v1.0"
+    -- | Specify description of the options.
+    opts = O.info (options <**> O.helper)
+      ( O.fullDesc
+     <> O.progDesc "Interpret and format target kotlin file"
+     <> O.header "Kotlin eDSL v1.0"
       )
 
+-- | Run the specified by given options actions.
 runner :: Options -> IO ()
 runner options = do
   file <- openFile (oPath options) ReadMode
@@ -34,24 +38,26 @@ runner options = do
   else return ()
   hClose file
 
+-- | Data type for console options.
 data Options = Options
-  { oPath      :: String
-  , oInterpret :: Bool
-  , oPrint     :: Bool
+  { oPath      :: String  -- ^ Path to the target file.
+  , oInterpret :: Bool    -- ^ Set if we should interpret the target file.
+  , oPrint     :: Bool    -- ^ Set if we should print the formatted target file.
   }
 
-sample :: Parser Options
-sample = Options
-  <$> strOption
-      ( long "file"
-     <> short 'f'
-     <> metavar "FILE"
-     <> help "Target file" )
-  <*> switch
-      ( long "interpret"
-     <> short 'i'
-     <> help "Print code of the file" )
-  <*> switch
-      ( long "print"
-     <> short 'p'
-     <> help "Interpret file" )
+-- | Specify how should be presented options.
+options :: Parser Options
+options = Options
+  <$> O.strOption
+      ( O.long "file"
+     <> O.short 'f'
+     <> O.metavar "FILE"
+     <> O.help "Target file" )
+  <*> O.switch
+      ( O.long "interpret"
+     <> O.short 'i'
+     <> O.help "Print code of the file" )
+  <*> O.switch
+      ( O.long "print"
+     <> O.short 'p'
+     <> O.help "Interpret file" )

@@ -13,45 +13,45 @@ module Parsing.Utils
   , defaultReturn
   ) where
 
-import Data.List (intercalate)
-import Data.Set  (Set, insert, member, empty)
 import System.IO (hFlush, stdout)
 import Text.Read (readMaybe)
 
-import Kotlin.Dsl
-import Kotlin.Utils
 import Parsing.KotlinPsi
 import Parsing.Result
-import Control.Exception (throwIO)
 
+-- | Add branch to the if command.
 addBranch
   :: (KotlinPsi (KtValue c), [KotlinPsi (KtCommand c)])
   -> KotlinPsi (KtCommand c)
   -> KotlinPsi (KtCommand c)
 addBranch branch = \case
   KtPsiIf branches elseBranch -> KtPsiIf (branch : branches) elseBranch
-  _ -> error "LOGIC ERROR (addBranch cannot be call not on KtPsiIf)"
+  _ -> error "LOGIC ERROR: addBranch cannot be call not on KtPsiIf"
 
+-- | Try cast int token to @Int@
 checkedInt :: String -> Result (KotlinPsi (KtValue IO))
 checkedInt str = case readMaybe @Int str of
   Nothing -> failE $ "Illegal Int constant: " ++ str
   Just i  -> returnE $ KtPsiInt i
 
+-- | Try cast double token to @Double@
 checkedDouble :: String -> Result (KotlinPsi (KtValue IO))
 checkedDouble str = case readMaybe @Double str of
   Nothing -> failE $ "Illegal Double constant: " ++ str
   Just d  -> returnE $ KtPsiDouble d
 
+-- | Trim `"` for string token value.
 updatedString :: String -> KotlinPsi (KtValue IO)
 updatedString (_:str) = KtPsiString $ dropLast str
+  where
+    dropLast :: [a] -> [a]
+    dropLast xs = go xs (tail xs)
+      where
+        go :: [a] -> [a] -> [a]
+        go (x:xs) (y:ys) = x : go xs ys
+        go _ _ = []
 
-dropLast :: [a] -> [a]
-dropLast xs = f xs (tail xs)
-    where
-      f :: [a] -> [a] -> [a]
-      f (x:xs) (y:ys) = x : f xs ys
-      f _ _ = []
-
+-- | Return command for `return;` statement.
 defaultReturn :: KotlinPsi (KtCommand IO)
 defaultReturn = KtPsiReturn $ KtPsiUnit ()
 

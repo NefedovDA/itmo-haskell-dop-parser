@@ -3,10 +3,13 @@ module Kotlin.PrinterTest
   ) where
 
 import Test.Tasty       (TestTree, testGroup)
-import Test.Tasty.HUnit (Assertion, testCase, (@?=))
+import Test.Tasty.HUnit (testCase, (@?=))
+
+import Kotlin.Printer (Printer)
 
 import Kotlin.TestTemplate
 
+-- | Test group of the Kotlin.Printer module.
 testPrinter :: TestTree
 testPrinter = testGroup "Testing Printer module"
   [ runTests
@@ -19,5 +22,5 @@ runTests = testGroup "Test printing" $
     runTest tt@TestTemplate { ttName = name, ttPrinted = expected } =
       testCase name $ runPrinter tt @?= expected
 
-    runPrinter :: TestTemplate -> String
+    runPrinter :: TestTemplate Printer -> String
     runPrinter = show . ttPsi
