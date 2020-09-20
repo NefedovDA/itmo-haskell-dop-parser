@@ -126,10 +126,10 @@ class Kotlin expr where
 
   ktUnit :: (Console c) => () -> expr (KtValue c)
 
-class Monad m => Console m where
-  consolePrint    :: String -> m ()
-  consolePrintln  :: String -> m ()
-  consoleReadLine :: m String
+class Monad c => Console c where
+  consolePrint    :: String -> c ()
+  consolePrintln  :: String -> c ()
+  consoleReadLine :: c String
 
 type KtDeclarations expr c = [expr (KtFunData c)]
 

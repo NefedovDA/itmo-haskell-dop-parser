@@ -11,16 +11,16 @@ module Kotlin.Interpret
 
 import Control.Monad  (liftM2)
 import Data.Bifunctor (first)
+import Data.Functor   ((<&>))
 import Data.List      (intercalate)
 import Data.Map       (Map, insert, empty, fromList, (!?))
+import Data.Maybe     (catMaybes)
 import Data.Monoid    (First(..))
 import Data.Typeable  (Typeable, (:~:)(..), eqT)
 import GHC.Float      (int2Double)
 
 import Kotlin.Dsl
 import Kotlin.Utils
-import Data.Functor ((<&>))
-import Data.Maybe (catMaybes)
 
 newtype Interpret a = Interpret { interpret :: a }
 
@@ -583,7 +583,7 @@ logicError :: String -> a
 logicError = error . ("LOGIC ERROR: " ++)
 
 interpretError :: String -> a
-interpretError = error . ("INTERPRET ERROR: " ++)
+interpretError = errorWithoutStackTrace . ("INTERPRET ERROR: " ++)
 
 withDiff :: String -> (String, String) -> String
 withDiff msg (expected, actual) =

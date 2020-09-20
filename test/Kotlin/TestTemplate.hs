@@ -2,6 +2,7 @@
 
 module Kotlin.TestTemplate
   ( TestTemplate(..)
+  , InterpretResult(..)
   
   , HandleIO(..)
 
@@ -23,12 +24,18 @@ data TestTemplate = TestTemplate
   { ttName        :: String
   , ttPsi         :: KotlinPsi (KtFile HandleIO)
   , ttPrinted     :: String
-  , ttInterpreted :: Maybe String
+  , ttInterpreted :: InterpretResult
   }
 
-data InterpretResult
-  = ShouldFailed String
-  | ShouldPass   String
+data InterpretResult = InterpretResult
+  { irErrors :: String
+  , irOutput :: String
+  }
+
+emptyResult = InterpretResult
+  { irErrors = ""
+  , irOutput = ""
+  }
 
 data HandleIO a = HandleIO { hioIO :: FilePath -> IO a }
 
@@ -76,7 +83,9 @@ testTemplates =
       { ttName = "Empty file"
       , ttPsi = KtPsiFile []
       , ttPrinted = ""
-      , ttInterpreted = Nothing
+      , ttInterpreted =
+          emptyResult
+            { irErrors = "INTERPRET ERROR: No funnction `main()` to call" }
       }
   , TestTemplate
       { ttName = "Simple main"
@@ -86,7 +95,7 @@ testTemplates =
           "fun main(): Unit {" ++!
           "}"                  ++!
           ""
-      , ttInterpreted = Nothing
+      , ttInterpreted = emptyResult
       }
   , TestTemplate
       { ttName = "Main with return"
@@ -97,7 +106,7 @@ testTemplates =
           "  return Unit;"     ++!
           "}"                  ++!
           ""
-      , ttInterpreted = Nothing
+      , ttInterpreted = emptyResult
       }
   , TestTemplate
       { ttName = "Main with several return"
@@ -115,7 +124,7 @@ testTemplates =
           "  return Unit;"     ++!
           "}"                  ++!
           ""
-      , ttInterpreted = Nothing
+      , ttInterpreted = emptyResult
       }
   , TestTemplate
       { ttName = "Print statements"
@@ -139,14 +148,17 @@ testTemplates =
           "  println(Unit);"   ++!
           "}"                  ++!
           ""
-      , ttInterpreted = Just $
-          "1"           ++!
-          "1.0"         ++!
-          "s"           ++!
-          "true"        ++!
-          "false"       ++!
-          "kotlin.Unit" ++!
-          ""
+      , ttInterpreted =
+          emptyResult
+            { irOutput =
+                "1"           ++!
+                "1.0"         ++!
+                "s"           ++!
+                "true"        ++!
+                "false"       ++!
+                "kotlin.Unit" ++!
+                ""
+          }
       }
   , TestTemplate
       { ttName = "Call functions"
@@ -219,17 +231,20 @@ testTemplates =
           "  println(a2);"                     ++!
           "}"                                  ++!
           ""
-      , ttInterpreted = Just $
-          "from main():"       ++!
-          "from f0():"         ++!
-          "from f1(Int):"      ++!
-          "  a: 1"             ++!
-          "from f1(Bool):"     ++!
-          "  a: true"          ++!
-          "from f2(Int, Int):" ++!
-          "  a1: 1"            ++!
-          "  a2: 2"            ++!
-          ""
+      , ttInterpreted =
+          emptyResult
+            { irOutput =
+                "from main():"       ++!
+                "from f0():"         ++!
+                "from f1(Int):"      ++!
+                "  a: 1"             ++!
+                "from f1(Bool):"     ++!
+                "  a: true"          ++!
+                "from f2(Int, Int):" ++!
+                "  a1: 1"            ++!
+                "  a2: 2"            ++!
+                ""
+            }
       }
   , TestTemplate
       { ttName = "Work with variables"
@@ -258,11 +273,14 @@ testTemplates =
           "  println(i);"                  ++!
           "}"                              ++!
           ""
-      , ttInterpreted = Just $
-          "left><right" ++!
-          "1"           ++!
-          "3"           ++!
-          ""
+      , ttInterpreted =
+          emptyResult
+            { irOutput =
+              "left><right" ++!
+              "1"           ++!
+              "3"           ++!
+              ""
+            }
       }
   , TestTemplate
       { ttName = "For & If"
@@ -295,18 +313,21 @@ testTemplates =
           "  }"                             ++!
           "}"                               ++!
           ""
-      , ttInterpreted = Just $
-          "1 is odd"   ++!
-          "2 is even"  ++!
-          "3 is odd"   ++!
-          "4 is even"  ++!
-          "5 is odd"   ++!
-          "6 is even"  ++!
-          "7 is odd"   ++!
-          "8 is even"  ++!
-          "9 is odd"   ++!
-          "10 is even" ++!
-          ""
+      , ttInterpreted =
+          emptyResult
+            { irOutput =
+                "1 is odd"   ++!
+                "2 is even"  ++!
+                "3 is odd"   ++!
+                "4 is even"  ++!
+                "5 is odd"   ++!
+                "6 is even"  ++!
+                "7 is odd"   ++!
+                "8 is even"  ++!
+                "9 is odd"   ++!
+                "10 is even" ++!
+                ""
+            }
       }
   ]
 
