@@ -4,7 +4,6 @@
 module Kotlin.Utils
   ( fun2key
   , to
-  , fromJust
   ) where
 
 import Kotlin.Dsl
@@ -23,8 +22,3 @@ fun2key name types = name ++ "@" ++ foldMap type2id types
 
 to :: a -> b -> (a, b)
 to = (,)
-
-fromJust :: String -> Maybe a -> a
-fromJust msg = \case
-  Just a  -> a
-  Nothing -> error msg
