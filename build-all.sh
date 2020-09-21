@@ -1,21 +1,14 @@
-resRoot=./res
-genRoot=./gen
-
-genModule=Parsing
-
-if [ ! -d "${genRoot}" ]
+if [ ! -d "./gen" ]
 then
-  mkdir "${genRoot}"
+  mkdir "./gen"
 fi
 
-if [ ! -d "${genRoot}/${genModule}" ]
+if [ ! -d "./gen/Parsing" ]
 then
-  mkdir "${genRoot}/${genModule}"
+  mkdir "./gen/Parsing"
 fi
 
-alex  -g   "${resRoot}/${genModule}/Lexer.x"  -o "${genRoot}/${genModule}/Lexer.hs"
-happy -gac "${resRoot}/${genModule}/Parser.y" -o "${genRoot}/${genModule}/Parser.hs"
+alex  -g   "./res/Parsing/Lexer.x"  -o "./gen/Parsing/Lexer.hs"
+happy -gac "./res/Parsing/Parser.y" -o "./gen/Parsing/Parser.hs"
 
-#happy -gac "./res/Parsing/Parser.y" -o "./gen/Parsing/Parser.hs" -i
-
-stack build --exec parser-exe
+stack build --exec "parser-exe -f ./examples/run.kt -p -i"
