@@ -7,13 +7,11 @@ module Kotlin.TestTemplate
   , HandleIO(..)
 
   , testTemplates
-
-  , (.:)
   ) where
 
 import System.IO (IOMode(..), openFile, hPutStrLn, hPutStr, hGetLine, hClose)
 
-import Parsing.KotlinPsi
+import Kotlin.Language
 
 testInputFile :: String
 testInputFile = "./test-tmp-input.txt"
@@ -94,7 +92,7 @@ testTemplates =
   , TestTemplate
       { ttName = "Simple main"
       , ttPsi = ktFile $
-          [ mainPsi [] ]
+          [ main_ [] ]
       , ttPrinted =
           "fun main(): Unit {" ++!
           "}"                  ++!
@@ -104,7 +102,7 @@ testTemplates =
   , TestTemplate
       { ttName = "Main with return"
       , ttPsi = ktFile $
-          [ mainPsi [ ktReturn $ ktUnit () ] ]
+          [ main_ [ ktReturn $ ktUnit () ] ]
       , ttPrinted =
           "fun main(): Unit {" ++!
           "  return Unit;"     ++!
@@ -115,7 +113,7 @@ testTemplates =
   , TestTemplate
       { ttName = "Main with several return"
       , ttPsi = ktFile $
-          [ mainPsi
+          [ main_
               [ ktReturn $ ktUnit ()
               , ktReturn $ ktUnit ()
               , ktReturn $ ktUnit ()
@@ -133,13 +131,13 @@ testTemplates =
   , TestTemplate
       { ttName = "Print statements"
       , ttPsi = ktFile $
-          [ mainPsi
-              [ printlnPsi $ ktInt    1
-              , printlnPsi $ ktDouble 1.0
-              , printlnPsi $ ktString "s"
-              , printlnPsi $ ktBool   True
-              , printlnPsi $ ktBool   False
-              , printlnPsi $ ktUnit   ()
+          [ main_
+              [ println_ $ ktInt    1
+              , println_ $ ktDouble 1.0
+              , println_ $ ktString "s"
+              , println_ $ ktBool   True
+              , println_ $ ktBool   False
+              , println_ $ ktUnit   ()
               ]
           ]
       , ttPrinted =
@@ -166,39 +164,31 @@ testTemplates =
   , TestTemplate
       { ttName = "Call functions"
       , ttPsi = ktFile $
-          [ unitFunPsi "f0"
-              [ printlnPsi $ ktString "from f0():" ]
-          , mainPsi
-              [ printlnPsi $ ktString "from main():"
-              , callFunPsi "f0" []
-              , callFunPsi "f1" [ktInt 1]
-              , callFunPsi "f1" [ktBool True]
-              , callFunPsi "f2" [ktInt 1, ktInt 2]
+          [ fun "f0" [] _Unit
+              [ println_ $ ktString "from f0():" ]
+          , main_
+              [ println_ $ ktString "from main():"
+              , "f0".!#[]
+              , "f1".!#[ktInt 1]
+              , "f1".!#[ktBool True]
+              , "f2".!#[ktInt 1, ktInt 2]
               ]
-          , ktFun "f1"
-              [ "a" .: KtAnyType KtIntType ]
-              (KtAnyType KtUnitType)
-              [ printlnPsi $ ktString "from f1(Int):"
-              , printPsi   $ ktString "  a: "
-              , printlnPsi $ ktReadVariable "a"
+          , ktFun "f1" ["a" .: _Int] _Unit
+              [ println_ $ ktString "from f1(Int):"
+              , print_   $ ktString "  a: "
+              , println_ $ ktReadVariable "a"
               ]
-          , ktFun "f1"
-              [ "a" .: KtAnyType KtBoolType ]
-              (KtAnyType KtUnitType)
-              [ printlnPsi $ ktString "from f1(Bool):"
-              , printPsi   $ ktString "  a: "
-              , printlnPsi $ ktReadVariable "a"
+          , ktFun "f1" ["a" .: _Bool] _Unit
+              [ println_ $ ktString "from f1(Bool):"
+              , print_   $ ktString "  a: "
+              , println_ $ ktReadVariable "a"
               ]
-          , ktFun "f2"
-              [ "a1" .: KtAnyType KtIntType
-              , "a2" .: KtAnyType KtIntType
-              ]
-              (KtAnyType KtUnitType)
-              [ printlnPsi $ ktString "from f2(Int, Int):"
-              , printPsi   $ ktString "  a1: "
-              , printlnPsi $ ktReadVariable "a1"
-              , printPsi   $ ktString "  a2: "
-              , printlnPsi $ ktReadVariable "a2"
+          , ktFun "f2" ["a1" .: _Int, "a2" .: _Int] _Unit
+              [ println_ $ ktString "from f2(Int, Int):"
+              , print_   $ ktString "  a1: "
+              , println_ $ ktReadVariable "a1"
+              , print_   $ ktString "  a2: "
+              , println_ $ ktReadVariable "a2"
               ]
           ]
       , ttPrinted =
@@ -251,17 +241,17 @@ testTemplates =
   , TestTemplate
       { ttName = "Work with variables"
       , ttPsi = ktFile $
-          [ mainPsi
-              [ valPsi "s" (KtAnyType KtStringType) $
+          [ main_
+              [ val "s" _String .=
                   ktString "left>" @+@ ktString "<right"
-              , printlnPsi $ ktReadVariable "s"
-              , varPsi "i" (KtAnyType KtIntType) $ ktInt 1
-              , printlnPsi $ ktReadVariable "i"
-              , ktSetVariable "i" $
-                  ktReadVariable "i" @+@
-                  ktReadVariable "i" @+@
-                  ktReadVariable "i"
-              , printlnPsi $ ktReadVariable "i"
+              , println_ $ get "s"
+              , var "i" _Int .= ktInt 1
+              , println_ $ get "i"
+              , "i" .=#
+                  get "i" @+@
+                  get "i" @+@
+                  get "i"
+              , println_ $ get "i"
               ]
           ]
       , ttPrinted =
@@ -286,17 +276,14 @@ testTemplates =
   , TestTemplate
       { ttName = "For & If"
       , ttPsi = ktFile $
-          [ mainPsi
-              [ ktFor "i" (ktInt 1) (ktInt 10)
-                  [ printPsi $ ktReadVariable "i"
-                  , printPsi $ ktString " is "
-                  , ktIf
-                      [ ( ktReadVariable "i" @/@ ktInt 2 @*@ ktInt 2
-                            @==@ ktReadVariable "i"
-                        , [ printlnPsi $ ktString "even" ]
-                        )
-                      ]
-                      [ printlnPsi $ ktString "odd" ]
+          [ main_
+              [ for ("i" `_in` ktInt 1 ..# ktInt 10)
+                  [ print_ $ get "i"
+                  , print_ $ ktString " is "
+                  , _if (get "i" @/@ ktInt 2 @*@ ktInt 2 @==@ get "i")
+                      [ println_ $ ktString "even" ]
+                    $ _else_
+                      [ println_ $ ktString "odd" ]
                   ]
               ]
           ]
@@ -332,16 +319,16 @@ testTemplates =
   , TestTemplate
       { ttName = "Variable areas"
       , ttPsi = ktFile $
-          [ mainPsi
-              [ valPsi "i" (KtAnyType KtIntType) $ ktInt 1
-              , valPsi "a" (KtAnyType KtIntType) $ ktInt 0
-              , scope
-                  [ printlnPsi $ ktReadVariable "i"
-                  , printlnPsi $ ktReadVariable "a"
-                  , valPsi "i" (KtAnyType KtStringType) $ ktString "sss"
-                  , scope
-                      [ printlnPsi $ ktReadVariable "i"
-                      , printlnPsi $ ktReadVariable "a"
+          [ main_
+              [ val "i" _Int .= ktInt 1
+              , val "a" _Int .= ktInt 0
+              , scope  -- synthetic
+                  [ println_ $ get "i"
+                  , println_ $ get "a"
+                  , val "i" _String .= ktString "sss"
+                  , scope  -- synthetic
+                      [ println_ $ get "i"
+                      , println_ $ get "a"
                       ]
                   ]
               ]
@@ -377,11 +364,11 @@ testTemplates =
   , TestTemplate
       { ttName = "Bad access"
       , ttPsi = ktFile $
-          [ unitFunPsi "f"
-              [ printlnPsi $ ktReadVariable "x" ]
-          , mainPsi
-              [ valPsi "x" (KtAnyType KtIntType) $ ktInt 10
-              , callFunPsi "f" []
+          [ fun "f" [] _Unit
+              [ println_ $ ktReadVariable "x" ]
+          , main_
+              [ val "x" _Int .= ktInt 10
+              , "f".!#[]
               ]
           ]
       , ttPrinted =
@@ -400,16 +387,16 @@ testTemplates =
   , TestTemplate
       { ttName = "Changing variables"
       , ttPsi = ktFile $
-          [ mainPsi
-              [ varPsi "x" (KtAnyType KtIntType) $ ktInt 0
-              , printlnPsi $ ktReadVariable "x"
-              , ktSetVariable "x" $ ktInt 5
-              , printlnPsi $ ktReadVariable "x"
-              , ktFor "i" (ktInt 1) (ktInt 5)
-                  [ ktSetVariable "x" $ ktReadVariable "x" @+@ ktInt 1
-                  , printlnPsi $ ktReadVariable "x"
+          [ main_
+              [ var "x" _Int .= ktInt 0
+              , println_ $ get "x"
+              , "x" .=# ktInt 5
+              , println_ $ get "x"
+              , for ("i" `_in` ktInt 1 ..# ktInt 5)
+                  [ "x" .=# get "x" @+@ ktInt 1
+                  , println_ $ get "x"
                   ]
-              , printlnPsi $ ktReadVariable "x"
+              , println_ $ get "x"
               ]
           ]
       , ttPrinted =
@@ -441,17 +428,15 @@ testTemplates =
   , TestTemplate
       { ttName = "Check that not lazy"
       , ttPsi = ktFile $
-          [ ktFun "f"
-              ["r" .: KtAnyType KtIntType]
-              (KtAnyType KtIntType)
-              [ printlnPsi $ ktReadVariable "r"
-              , ktReturn $ ktReadVariable "r" @+@ ktInt 1
+          [ ktFun "f" ["r" .: _Int] _Int
+              [ println_ $ get "r"
+              , ktReturn $ get "r" @+@ ktInt 1
               ]
-          , mainPsi
-              [ valPsi "x" (KtAnyType KtIntType) $ ktCallFun "f" [ ktInt 1 ]
-              , printlnPsi $ ktReadVariable "x"
-              , printlnPsi $ ktCallFun "f" [ ktCallFun "f" [ ktInt 3 ] ]
-              , printlnPsi $ ktCallFun "println" [ ktBool True ]
+          , main_
+              [ val "x" _Int .= "f".![ktInt 1]
+              , println_ $ get "x"
+              , println_ $ "f".!["f".![ktInt 3]]
+              , println_ $ "println".![ktBool True]
               ]
           ]
       , ttPrinted =
@@ -482,38 +467,17 @@ testTemplates =
   ]
 
 scope :: (Kotlin expr, Console c) => [expr (KtCommand c)] -> expr (KtCommand c)
-scope cmds = ktIf [ ktBool True .: cmds] []
+scope cmds = _if (ktBool True) cmds $ _else_ []
 
-valPsi
-  :: (Kotlin expr, Console c)
-  => Name -> KtAnyType -> expr (KtValue c) -> expr (KtCommand c)
-valPsi = ktInitVariable True
+main_ :: (Kotlin expr, Console c) => [expr (KtCommand c)] -> expr (KtFunData c)
+main_ = fun "main" [] _Unit
 
-varPsi
-  :: (Kotlin expr, Console c)
-  => Name -> KtAnyType -> expr (KtValue c) -> expr (KtCommand c)
-varPsi = ktInitVariable False
+print_ :: (Kotlin expr, Console c) => expr (KtValue c) -> expr (KtCommand c)
+print_ a = "print".!#[a]
 
-unitFunPsi :: (Kotlin expr, Console c) => Name -> [expr (KtCommand c)] -> expr (KtFunData c)
-unitFunPsi name = ktFun name [] (KtAnyType KtUnitType)
-
-mainPsi :: (Kotlin expr, Console c) => [expr (KtCommand c)] -> expr (KtFunData c)
-mainPsi = unitFunPsi "main"
-
-callFunPsi :: (Kotlin expr, Console c) => Name -> [expr (KtValue c)] -> expr (KtCommand c)
-callFunPsi n as = ktValueCommand $ ktCallFun n as
-
-printPsi :: (Kotlin expr, Console c) => expr (KtValue c) -> expr (KtCommand c)
-printPsi a = callFunPsi "print" [a]
-
-printlnPsi :: (Kotlin expr, Console c) => expr (KtValue c) -> expr (KtCommand c)
-printlnPsi a = callFunPsi "println" [a]
+println_ :: (Kotlin expr, Console c) => expr (KtValue c) -> expr (KtCommand c)
+println_ a = "println".!#[a]
 
 infixr 5  ++!
 (++!) :: String -> String -> String
 prefix ++! suffix = prefix ++ "\n" ++ suffix
-
--- | Idiomatic binding of (,) to use it as infix operator.
-infix 1 .:
-(.:) :: a -> b -> (a, b)
-(.:) = (,)

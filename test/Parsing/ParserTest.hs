@@ -10,12 +10,10 @@ import Data.Typeable    (Typeable)
 import Test.Tasty       (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, testCase, (@?=))
 
-import Kotlin.Dsl
+import Kotlin.Language ((.:))
 import Kotlin.Printer
 import Parsing.KotlinPsi
 import Parsing.ParseInput (parseInput)
-
-import Kotlin.TestTemplate ((.:))
 
 -- | Test group of Parsing.Parser module.
 testParser :: TestTree
