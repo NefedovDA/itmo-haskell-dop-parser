@@ -2,7 +2,7 @@
 
 -- |
 -- This module help to write more idiomatic declaration of Kotlin eDSL.
--- 
+--
 -- Example of usage:
 -- @
 -- code :: (Kotlin expr, Console c) => expr (KtFile c)
@@ -36,14 +36,14 @@
 -- @
 module Kotlin.Language
   ( module Kotlin.Dsl
-  
+
   , (.!)
   , (.!#)
   , (..#)
   , (.:)
   , (.=)
   , (.=#)
-  
+
   , _Bool
   , _Double
   , _Int

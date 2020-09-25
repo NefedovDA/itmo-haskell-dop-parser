@@ -63,4 +63,4 @@ instance Console IO where
   consolePrintln = putStrLn
 
   consoleReadLine :: IO String
-  consoleReadLine = readLn
+  consoleReadLine = getLine

@@ -44,8 +44,8 @@ tokens :-
     Bool                                        { tok TypeBool   }
     String                                      { tok TypeString }
 
-    readLine\(\).toInt                          { tok Name }
-    readLine\(\).toDouble                       { tok Name }
+    readLine\(\)\.toInt                         { tok Name }
+    readLine\(\)\.toDouble                      { tok Name }
 
     [$alpha][$alpha $digit]*                    { tok Name }
 
